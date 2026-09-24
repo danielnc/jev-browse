@@ -1,0 +1,20 @@
+# secrets and local-only material
+.env
+.env.*
+!.env.example
+.local/
+*.key
+*.pem
+
+# traces, recordings, raw benchmark output (may contain page text)
+traces/
+recordings/
+bench/results/raw/
+*.trace.json
+
+# python / tooling
+__pycache__/
+.venv/
+dist/
+.pytest_cache/
+.ruff_cache/

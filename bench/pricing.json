@@ -1,0 +1,12 @@
+{
+  "source": "https://platform.claude.com/docs/en/about-claude/pricing (Claude API list prices, USD per million tokens); TypeSafe Jev from docs.typesafe.ai/models",
+  "retrieved": "2026-09-24",
+  "models": {
+    "claude-opus-5-5":  {"input": 4.0, "cache_write_5m": 5.0, "cache_write_1h": 8.0, "cache_read": 0.20, "output": 20.0},
+    "claude-opus-5":    {"input": 5.0, "cache_write_5m": 6.25, "cache_write_1h": 10.0, "cache_read": 0.50, "output": 25.0},
+    "claude-fable-5-1": {"input": 10.0, "cache_write_5m": 12.5, "cache_write_1h": 20.0, "cache_read": 0.25, "output": 50.0},
+    "claude-sonnet-5":  {"input": 2.0, "cache_write_5m": 2.5, "cache_write_1h": 4.0, "cache_read": 0.20, "output": 10.0},
+    "claude-haiku-4-5": {"input": 1.0, "cache_write_5m": 1.25, "cache_write_1h": 2.0, "cache_read": 0.10, "output": 5.0},
+    "jev":              {"input": 0.042, "output": 0.0}
+  }
+}

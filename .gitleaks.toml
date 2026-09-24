@@ -1,0 +1,10 @@
+title = "jev-browse gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "typesafe-api-key-assignment"
+description = "A TypeSafe API key assigned in a file"
+regex = '''TYPESAFE_API_KEY\s*=\s*['"]?[A-Za-z0-9_\-]{16,}'''
+keywords = ["typesafe_api_key"]
