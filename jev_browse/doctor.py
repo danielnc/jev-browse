@@ -117,23 +117,23 @@ def check_install(workspace=None, skill_dirs=None):
     helpers = Path(workspace or install.workspace_dir()) / "agent_helpers.py"
     text = helpers.read_text() if helpers.exists() else ""
     if install.BEGIN not in text:
-        out.append(Check(FAIL, "harness helpers", f"no jev-browse block in {helpers}; run: python3 -m jev_browse "
-                         "install"))
+        out.append(Check(FAIL, "harness helpers", f"no jev-browse block in {helpers}; run: {install.CLI} install"))
     elif install.render_block() not in text:
         out.append(Check(WARN, "harness helpers", f"the block in {helpers} is from another checkout or version; "
-                         "re-run: python3 -m jev_browse install"))
+                         f"re-run: {install.CLI} install"))
     else:
         out.append(Check(OK, "harness helpers", f"block current in {helpers}"))
-    target = (install.CHECKOUT / "skill").resolve()
+    target = install.SKILL_DIR.resolve()
     linked = []
     for d in skill_dirs or install.agent_skill_dirs():
         link = Path(d) / "jev-browse"
         if link.is_symlink() and link.resolve() == target:
             linked.append(str(link))
         elif link.exists() or link.is_symlink():
-            out.append(Check(WARN, "skill", f"{link} exists but does not point at this checkout's skill/"))
+            out.append(Check(WARN, "skill", f"{link} exists but does not point at this install's skill"))
     out.append(Check(OK if linked else WARN, "skill", ", ".join(linked) if linked else
-                     "not linked for any agent; run: python3 -m jev_browse install"))
+                     "not linked for any agent (fine if the Claude Code plugin provides it); "
+                     f"run: {install.CLI} install"))
     return out
 
 
@@ -190,7 +190,7 @@ def summary_lines():
 def main(argv=None, *, out=print):
     import argparse
 
-    ap = argparse.ArgumentParser(prog="python3 -m jev_browse doctor")
+    ap = argparse.ArgumentParser(prog=f"{install.CLI} doctor")
     ap.add_argument("--offline", action="store_true", help="no network: skip the TypeSafe request and the canary")
     ap.add_argument("--no-canary", action="store_true", help="skip the text-backend canary")
     ap.add_argument("--workspace", help="browser-harness agent-workspace dir")

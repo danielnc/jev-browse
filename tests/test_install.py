@@ -218,3 +218,29 @@ def test_installer_runs_as_module(tmp_path):
                           "--skills-dir", str(tmp_path / "s"), "--no-skill"], capture_output=True, text=True,
                          cwd=ROOT, timeout=60)
     assert out.returncode == 0 and "agent_helpers block written" in out.stdout
+
+
+def test_skill_dir_prefers_the_copy_bundled_in_the_package(tmp_path):
+    pkg = tmp_path / "site-packages" / "jev_browse"
+    (pkg / "skill").mkdir(parents=True)
+    (pkg / "skill" / "SKILL.md").write_text("bundled")
+    assert install.find_skill_dir(pkg) == pkg / "skill"
+
+
+def test_skill_dir_falls_back_to_the_checkout(tmp_path):
+    pkg = tmp_path / "checkout" / "jev_browse"
+    pkg.mkdir(parents=True)
+    assert install.find_skill_dir(pkg) == tmp_path / "checkout" / "skill"
+
+
+def test_this_checkout_uses_its_own_skill_and_module_cli():
+    assert install.SKILL_DIR == ROOT / "skill" and (install.SKILL_DIR / "SKILL.md").exists()
+    assert install.CHECKOUT == ROOT and install.CLI == "python3 -m jev_browse"
+
+
+def test_install_links_the_skill_dir_it_was_given(tmp_path):
+    bundled = tmp_path / "pkg" / "skill"
+    bundled.mkdir(parents=True)
+    link, changed = install.link_skill(tmp_path / "skills", skill=bundled)
+    assert changed and link.resolve() == bundled.resolve()
+    assert install.unlink_skill(tmp_path / "skills", skill=bundled) == (link, True)

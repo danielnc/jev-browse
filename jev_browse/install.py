@@ -1,10 +1,11 @@
 """Install jev-browse into browser-harness and your coding agents (Claude Code, Codex).
 
-python3 -m jev_browse install [--uninstall] [--unlink-skill] [--workspace PATH] [--agent auto|claude|codex|all]
+jev-browse install [--uninstall] [--unlink-skill] [--workspace PATH] [--agent auto|claude|codex|all]
                              [--skills-dir PATH] [--no-skill]
 
 1. Appends a marked block to the harness's agent_helpers.py (user code untouched; idempotent).
-2. Symlinks <skills dir>/jev-browse -> <checkout>/skill for each agent (~/.claude/skills, ${CODEX_HOME:-~/.codex}/skills;
+2. Symlinks <skills dir>/jev-browse -> the skill (jev_browse/skill in a package install, <checkout>/skill in a
+   checkout) for each agent (~/.claude/skills, ${CODEX_HOME:-~/.codex}/skills;
    refuses a conflicting path; never overwrites).
 3. Warns if browser-harness telemetry is enabled (what it sends, and the opt-out command).
 """
@@ -16,7 +17,21 @@ import subprocess
 import sys
 from pathlib import Path
 
-CHECKOUT = Path(__file__).resolve().parents[1]
+PACKAGE = Path(__file__).resolve().parent
+# The directory that holds jev_browse/: a git checkout, or site-packages for a package install. The harness block
+# puts it on sys.path.
+CHECKOUT = PACKAGE.parent
+
+
+def find_skill_dir(package=PACKAGE):
+    """A wheel bundles the skill inside the package (jev_browse/skill); a checkout keeps it at <checkout>/skill."""
+    bundled = Path(package) / "skill"
+    return bundled if (bundled / "SKILL.md").exists() else Path(package).parent / "skill"
+
+
+SKILL_DIR = find_skill_dir()
+# How to run this install's CLI, for the hints we print.
+CLI = "jev-browse" if SKILL_DIR.parent == PACKAGE else "python3 -m jev_browse"
 BEGIN = "# >>> jev-browse (managed by `python3 -m jev_browse.install`; remove with --uninstall) >>>"
 END = "# <<< jev-browse <<<"
 
@@ -132,26 +147,26 @@ def agent_skill_dirs(agent="auto", env=None):
     return found or [dirs["claude"]]
 
 
-def link_skill(skills, checkout=CHECKOUT):
-    target = Path(checkout) / "skill"
+def link_skill(skills, skill=SKILL_DIR):
+    target = Path(skill)
     link = Path(skills) / "jev-browse"
     if link.is_symlink():
         if link.resolve() == target.resolve():
             return link, False
-        raise SystemExit(f"refusing: {link} is a symlink to {os.readlink(link)}, not this checkout's skill/")
+        raise SystemExit(f"refusing: {link} is a symlink to {os.readlink(link)}, not this install's skill {target}")
     if link.exists():
-        raise SystemExit(f"refusing: {link} already exists and is not this checkout's symlink; remove it yourself")
+        raise SystemExit(f"refusing: {link} already exists and is not this install's symlink; remove it yourself")
     link.parent.mkdir(parents=True, exist_ok=True)
     link.symlink_to(target, target_is_directory=True)
     return link, True
 
 
-def unlink_skill(skills, checkout=CHECKOUT):
+def unlink_skill(skills, skill=SKILL_DIR):
     link = Path(skills) / "jev-browse"
     if not link.exists() and not link.is_symlink():
         return link, False
-    if not link.is_symlink() or link.resolve() != (Path(checkout) / "skill").resolve():
-        raise SystemExit(f"refusing: {link} does not point into this checkout")
+    if not link.is_symlink() or link.resolve() != Path(skill).resolve():
+        raise SystemExit(f"refusing: {link} does not point at this install's skill")
     link.unlink()
     return link, True
 
@@ -177,7 +192,7 @@ def telemetry_enabled(run=subprocess.run):
 
 
 def main(argv=None, *, run=subprocess.run, out=print):
-    ap = argparse.ArgumentParser(prog="python3 -m jev_browse install")
+    ap = argparse.ArgumentParser(prog=f"{CLI} install")
     ap.add_argument("--uninstall", action="store_true", help="remove only the agent_helpers block")
     ap.add_argument("--unlink-skill", action="store_true", help="remove the skill symlink if it points here")
     ap.add_argument("--workspace", help="browser-harness agent-workspace dir (default: as the harness resolves it)")
@@ -202,7 +217,7 @@ def main(argv=None, *, run=subprocess.run, out=print):
     if not args.no_skill:
         for skills in dirs:
             link, changed = link_skill(skills)
-            out(f"skill {'linked' if changed else 'already linked'}: {link} -> {CHECKOUT / 'skill'}")
+            out(f"skill {'linked' if changed else 'already linked'}: {link} -> {SKILL_DIR}")
     enabled = telemetry_enabled(run)
     if enabled:
         out(TELEMETRY_WARNING)
