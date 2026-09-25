@@ -2,6 +2,11 @@
 
 [![CI](https://github.com/danielnc/jev-browse/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/danielnc/jev-browse/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/danielnc/jev-browse/badge)](https://scorecard.dev/viewer/?uri=github.com/danielnc/jev-browse)
+[![PyPI](https://img.shields.io/pypi/v/jev-browse)](https://pypi.org/project/jev-browse/)
+[![Python versions](https://img.shields.io/pypi/pyversions/jev-browse)](https://pypi.org/project/jev-browse/)
+[![Codecov](https://codecov.io/gh/danielnc/jev-browse/graph/badge.svg)](https://codecov.io/gh/danielnc/jev-browse)
+[![CodeRabbit reviews](https://img.shields.io/coderabbit/prs/github/danielnc/jev-browse?label=CodeRabbit%20reviews)](https://coderabbit.ai)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ![The same Google Flights one-way search done by Claude Code twice, side by side: driving browser-harness itself on the left (done in 70.4 s, $1.41), calling fast_run on the right (done in 31.1 s, $0.45)](docs/media/demo.gif)
 
