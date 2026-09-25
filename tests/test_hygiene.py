@@ -22,10 +22,11 @@ def test_clean_traces_skips_registry_and_live_runs(tmp_path):
     (tmp_path / "jev-browse-run-dead.json").write_text(json.dumps({"final": False, "pid": 999999}))
     (tmp_path / "jev-browse-trace-done.json").write_text("{}")
     (tmp_path / "jev-browse-shot-done-1.png").write_bytes(b"x")
+    (tmp_path / "jev-browse-mcp-done.log").write_text("JEV_BROWSE_RESULT={}")
     (tmp_path / "daemon.log").write_text("keep")
     removed = set(cleanup.clean(tmp_path))
     assert removed == {"jev-browse-run-done.json", "jev-browse-run-dead.json", "jev-browse-trace-done.json",
-                       "jev-browse-shot-done-1.png"}
+                       "jev-browse-shot-done-1.png", "jev-browse-mcp-done.log"}
     assert (tmp_path / "jev-browse-owned-default.json").exists()
     assert (tmp_path / "jev-browse-run-live.json").exists()
     assert (tmp_path / "daemon.log").exists()

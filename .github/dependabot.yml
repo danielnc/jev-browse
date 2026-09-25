@@ -1,0 +1,28 @@
+# Weekly dependency updates. The uv ecosystem reads pyproject.toml and uv.lock (version and security updates); the
+# runtime has no dependencies, so these are the dev tools and the optional mcp extra. github-actions keeps the
+# SHA-pinned actions in .github/workflows current (the pin and its version comment are updated together).
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7 # let a new release settle before proposing it (security updates are not delayed)
+    groups:
+      python:
+        patterns: ["*"]
+    commit-message:
+      prefix: "build(deps)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci(deps)"

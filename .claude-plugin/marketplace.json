@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "jev-browse",
+  "description": "jev-browse: fast, typed browser sub-tasks for Claude Code on browser-harness",
+  "owner": { "name": "danielnc", "url": "https://github.com/danielnc" },
+  "plugins": [
+    {
+      "name": "jev-browse",
+      "source": "./",
+      "description": "The jev-browse skill plus /jev-browse:setup, which installs the jev-browse package and wires it into browser-harness",
+      "category": "automation",
+      "tags": ["browser", "browser-harness", "forms", "typesafe"]
+    }
+  ]
+}

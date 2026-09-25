@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """jev-browse command-line launcher: runs `python3 -m jev_browse` from this checkout, from any directory.
-Symlink it onto your PATH: ln -s "$PWD/bin/jev-browse" ~/.local/bin/jev-browse"""
+Symlink it onto your PATH: ln -s "$PWD/scripts/jev-browse" ~/.local/bin/jev-browse"""
 import os
 import sys
 

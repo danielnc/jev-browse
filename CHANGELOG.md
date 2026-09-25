@@ -6,9 +6,29 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- CI on pull requests and `main`: pytest on Python 3.11–3.14 (with the `mcp` extra), ruff, a wheel build and
+  clean-venv smoke test, and a full-history gitleaks scan, summarised by one `ci` check. Plus CodeQL, Dependabot
+  (uv and GitHub Actions), OpenSSF Scorecard, and a CodeRabbit review config.
+- PyPI packaging: `uv tool install jev-browse` (or `pipx install jev-browse`) gives a `jev-browse` command
+  (`install`, `uninstall`, `doctor`, `config`, `mcp`). The wheel bundles the skill, and `jev-browse install` links it
+  from the package.
+- A Claude Code plugin and marketplace: `/plugin marketplace add danielnc/jev-browse`, then
+  `/plugin install jev-browse@jev-browse`. It ships the skill plus `/jev-browse:setup`.
+- A GitHub Actions workflow that publishes to PyPI on `v*` tags with Trusted Publishing (`docs/releasing.md`).
+- `jev-browse mcp`: an MCP server on stdio for Cursor, Claude Desktop, Codex, and other MCP clients (install with
+  `uv tool install "jev-browse[mcp]"`). Tools: `fast_run`, `fast_run_status`, `jev_open`, `jev_find`, `jev_click`,
+  `jev_check`, `jev_close`, `doctor`. Each call runs through the `browser-harness` CLI with harness telemetry off.
+  Results are concise text with a `next:` instruction. A `fast_run` longer than `mcp.wait_s` returns a resumable
+  `run_id`. The MCP SDK is the optional `mcp` extra; the harness runtime stays stdlib-only. See `docs/mcp.md`.
+- Settings `mcp.harness_command` and `mcp.wait_s`.
 - A demo GIF at the top of the README: a real benchmark pair on Google Flights, the agent alone against the
   agent calling `fast_run`, with each run's time and list-price cost. `scripts/make_demo_gif.py` re-creates it
   (`record`, `review`, `render`; see docs/benchmarking.md).
+
+### Changed
+- The checkout launcher moved from `bin/jev-browse` to `scripts/jev-browse`. Claude Code puts a plugin's `bin/`
+  on the Bash PATH, where the launcher would have shadowed a missing package install.
+- `doctor` and the installer print `jev-browse <command>` hints in a package install.
 
 ## [0.1.0] - 2026-09-24
 
