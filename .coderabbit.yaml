@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit review settings. The rules below restate AGENTS.md and docs/architecture.md ("Safety model").
+language: en
+tone_instructions: >-
+  Be concise and specific. Flag real problems only: bugs, safety or privacy regressions, missing tests, broken
+  docs. No praise, no restating the diff, no style nits that ruff would catch.
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  poem: false
+  sequence_diagrams: false
+  collapse_walkthrough: true
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!uv.lock"
+    - "!docs/media/**"
+  path_instructions:
+    - path: "**"
+      instructions: >-
+        This repository is public. Flag any personal data in code, tests, docs, benchmark rows, or commit
+        messages: real names, emails, hostnames, IPs, home paths (/Users/..., /home/...), account or company
+        names. Examples must use public sites (Wikipedia, example.com) and 127.0.0.1. Secrets (keys, tokens,
+        .env contents) must never be committed. Measured numbers must say whose machine, N, and date.
+    - path: "jev_browse/**"
+      instructions: >-
+        Safety contract, check every change against it: (1) Owned tabs only: jev-browse acts on tabs it created
+        or that the caller explicitly adopted, and never touches, focuses, or closes any other tab. (2) Model
+        output never becomes code: Jev answers and text-backend output only pick among observed elements or
+        supply field values; they must never become a CSS selector, JavaScript source, URL to evaluate, or
+        shell command. (3) Sensitive fields (passwords, one-time codes, card numbers, CVV, IBAN, national IDs)
+        are never typed, read, or sent; personal fields never go to a text backend. (4) Private URLs (Ollama
+        host, custom endpoints) never appear in errors, traces, or doctor output. (5) Never weaken a safety
+        gate (commit gate, sensitive-field rules, hand-back reasons). (6) The runtime is standard-library only;
+        only jev_browse/mcp_server.py may import the optional mcp extra. (7) Settings are read through
+        jev_browse/config.py (config.get), not os.environ, except the names in config.ENV_ONLY.
+    - path: "tests/**"
+      instructions: >-
+        Tests must stay offline: TypeSafe, the claude/codex CLIs, HTTP backends, and Chrome are faked
+        (tests/fakes.py, stub servers). Flag any test that needs network, a real browser, or the developer's
+        own config or JEV_BROWSE_* environment.
+    - path: "skill/**"
+      instructions: >-
+        This is what calling agents read. Keep it short and exact, and consistent with fast_run's arguments,
+        the hand-back reasons, and the JEV_BROWSE_RESULT line in jev_browse/.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Actions must be pinned to full commit SHAs with a version comment, permissions least-privilege
+        (workflow default contents: read), and no secrets or tokens in the repository.
