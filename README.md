@@ -1,5 +1,9 @@
 # jev-browse
 
+![The same Google Flights one-way search done by Claude Code twice, side by side: driving browser-harness itself on the left (done in 56.8 s, $1.08), calling fast_run on the right (done in 34.9 s, $0.45)](docs/media/demo.gif)
+
+*A real benchmark run at 2x speed: the same agent searches Google Flights by driving browser-harness itself (left) or with one `fast_run` call (right). This pair, the median of 3 recorded, took 56.8 s / $1.08 against 34.9 s / $0.45 at list price; the [benchmark](docs/benchmark.md) medians are 72.8 s / $2.34 against 24.7 s / $0.44.*
+
 **Fast, typed browser sub-tasks for coding agents.** jev-browse adds a few helpers to
 [browser-harness](https://github.com/browser-use/browser-harness) so that Claude Code or Codex can hand off a
 whole website sub-task in one call: "search Lisbon, set these two filters, open Casa Flora". Each step is decided by
