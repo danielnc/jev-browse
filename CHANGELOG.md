@@ -21,6 +21,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
   Results are concise text with a `next:` instruction. A `fast_run` longer than `mcp.wait_s` returns a resumable
   `run_id`. The MCP SDK is the optional `mcp` extra; the harness runtime stays stdlib-only. See `docs/mcp.md`.
 - Settings `mcp.harness_command` and `mcp.wait_s`.
+- A demo GIF at the top of the README: a real benchmark pair on Google Flights, the agent alone against the
+  agent calling `fast_run`, with each run's time and list-price cost. `scripts/make_demo_gif.py` re-creates it
+  (`record`, `review`, `render`; see docs/benchmarking.md).
 
 ### Changed
 - The checkout launcher moved from `bin/jev-browse` to `scripts/jev-browse`. Claude Code puts a plugin's `bin/`

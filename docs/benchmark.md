@@ -23,6 +23,7 @@ effect sizes.
 
 | | |
 |---|---|
+| Measured | 2026-09-24, N = 3 runs per task and arm |
 | Calling machine | MacBook Pro, Apple M2 Max (12 cores), 64 GB RAM, macOS 15.7 |
 | Calling agent | Claude Code 2.1.281, model `claude-opus-5-5`, headless (`claude -p`) |
 | Browser | Google Chrome, driven through browser-harness 0.1.13 |
