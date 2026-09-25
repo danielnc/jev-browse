@@ -52,5 +52,7 @@ python3 bench/text_eval.py       # live eval of the configured text backend
 | `jev_browse/typesafe.py` | the TypeSafe client |
 | `jev_browse/interactive.py` | `jev_open` / `jev_adopt` / `jev_find` / `jev_click` / `jev_check` / `jev_close` |
 | `jev_browse/config.py`, `doctor.py`, `install.py`, `__main__.py` | settings, diagnostics, installer, CLI |
-| `skill/` | what the calling agent reads; keep it short and exact |
+| `skill/` | what the calling agent reads; keep it short and exact (the wheel bundles it as `jev_browse/skill`) |
+| `.claude-plugin/`, `skills/setup/` | the Claude Code plugin and marketplace manifests, and `/jev-browse:setup` |
+| `pyproject.toml`, `.github/workflows/publish.yml` | packaging and the PyPI release workflow (`docs/releasing.md`) |
 | `bench/` | end-to-end benchmark and `text_eval` (see `docs/benchmarking.md`) |

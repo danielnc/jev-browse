@@ -27,28 +27,50 @@ helpers any agent can call from a browser-harness script.
 ## Quickstart
 
 You need Chrome, [browser-harness](https://github.com/browser-use/browser-harness) connected to it, Python 3.11+,
-and a **TypeSafe API key** from [console.typesafe.ai/keys](https://console.typesafe.ai/keys).
+[uv](https://docs.astral.sh/uv/) (or pipx), and a **TypeSafe API key** from
+[console.typesafe.ai/keys](https://console.typesafe.ai/keys).
+
+```bash
+uv tool install jev-browse && jev-browse install
+```
+
+That installs the `jev-browse` command, adds the helpers to browser-harness, and links the skill for Claude Code
+and Codex. Then store your key and check the install (below), or let your agent do all of it.
 
 ### With your coding agent (recommended)
 
 Paste this into Claude Code or Codex:
 
 ```text
-Install jev-browse from https://github.com/danielnc/jev-browse by following its install.md: clone it, run its
-installer, store my TypeSafe API key in the browser-harness agent-workspace .env (ask me for it; never print it),
-and run `python3 -m jev_browse doctor` until it passes. Ask me which text backend I want (default: my Claude
-subscription if the claude CLI is installed) and whether to add the jev-browse pointer to my global agent
-instructions.
+Install jev-browse from https://github.com/danielnc/jev-browse by following its install.md: install the package
+with `uv tool install jev-browse`, run `jev-browse install`, store my TypeSafe API key in the browser-harness
+agent-workspace .env (ask me for it; never print it), and run `jev-browse doctor` until it passes. Ask me which
+text backend I want (default: my Claude subscription if the claude CLI is installed) and whether to add the
+jev-browse pointer to my global agent instructions.
 ```
+
+### As a Claude Code plugin
+
+In Claude Code:
+
+```text
+/plugin marketplace add danielnc/jev-browse
+/plugin install jev-browse@jev-browse
+/jev-browse:setup
+```
+
+The plugin gives Claude Code the jev-browse skill. `/jev-browse:setup` installs the package, wires it into
+browser-harness, and walks through the key, the text backend, and `doctor`: the same steps as
+[install.md](install.md).
 
 ### By hand (about a minute)
 
 ```bash
-git clone https://github.com/danielnc/jev-browse ~/jev-browse && cd ~/jev-browse
-python3 -m jev_browse install          # adds the helpers to browser-harness and links the skill
+uv tool install jev-browse             # or: pipx install jev-browse
+jev-browse install                     # adds the helpers to browser-harness and links the skill
 ENV=~/.config/browser-harness/agent-workspace/.env
 printf 'TYPESAFE_API_KEY=%s\n' '<your key>' >> "$ENV" && chmod 600 "$ENV"
-python3 -m jev_browse doctor           # checks everything and prints what is active
+jev-browse doctor                      # checks everything and prints what is active
 browser-harness <<'PY'
 r = fast_run("https://en.wikipedia.org/wiki/Main_Page", "Open the Wikipedia article about the Eiffel Tower",
              run_id="hello-1")
@@ -56,6 +78,8 @@ print(r.status, r.url)
 jev_close(r.target_id)
 PY
 ```
+
+To run from a git checkout instead, see [install.md](install.md) step 1.
 
 Then add the [global pointer](#tell-your-agent-about-it) to your agent's instructions. Without it, agents
 rarely think to use jev-browse on their own.
@@ -125,7 +149,7 @@ an entry in `~/.config/jev-browse/config.toml`. The environment wins. The settin
 > prints which fallback is active.
 
 All settings, and common setups (privacy mode, local model, OpenRouter/Groq/Cerebras/Gemini):
-[docs/configuration.md](docs/configuration.md). `python3 -m jev_browse config` shows what is active and where each
+[docs/configuration.md](docs/configuration.md). `jev-browse config` shows what is active and where each
 value came from.
 
 ## Text backends

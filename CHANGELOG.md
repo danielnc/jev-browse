@@ -5,6 +5,19 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- PyPI packaging: `uv tool install jev-browse` (or `pipx install jev-browse`) gives a `jev-browse` command
+  (`install`, `uninstall`, `doctor`, `config`). The wheel bundles the skill, and `jev-browse install` links it
+  from the package.
+- A Claude Code plugin and marketplace: `/plugin marketplace add danielnc/jev-browse`, then
+  `/plugin install jev-browse@jev-browse`. It ships the skill plus `/jev-browse:setup`.
+- A GitHub Actions workflow that publishes to PyPI on `v*` tags with Trusted Publishing (`docs/releasing.md`).
+
+### Changed
+- The checkout launcher moved from `bin/jev-browse` to `scripts/jev-browse`. Claude Code puts a plugin's `bin/`
+  on the Bash PATH, where the launcher would have shadowed a missing package install.
+- `doctor` and the installer print `jev-browse <command>` hints in a package install.
+
 ## [0.1.0] - 2026-09-24
 
 ### Added
