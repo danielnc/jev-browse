@@ -3,9 +3,9 @@
 [![CI](https://github.com/danielnc/jev-browse/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/danielnc/jev-browse/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/danielnc/jev-browse/badge)](https://scorecard.dev/viewer/?uri=github.com/danielnc/jev-browse)
 
-![The same Google Flights one-way search done by Claude Code twice, side by side: driving browser-harness itself on the left (done in 56.8 s, $1.08), calling fast_run on the right (done in 34.9 s, $0.45)](docs/media/demo.gif)
+![The same Google Flights one-way search done by Claude Code twice, side by side: driving browser-harness itself on the left (done in 70.4 s, $1.41), calling fast_run on the right (done in 31.1 s, $0.45)](docs/media/demo.gif)
 
-*A real benchmark run at 2x speed: the same agent searches Google Flights by driving browser-harness itself (left) or with one `fast_run` call (right). This pair, the median of 3 recorded, took 56.8 s / $1.08 against 34.9 s / $0.45 at list price; the [benchmark](docs/benchmark.md) medians are 72.8 s / $2.34 against 24.7 s / $0.44.*
+*A real benchmark run on the author's machine (2026-09-25), played at 2.5x: the same agent searches Google Flights by driving browser-harness itself (left) or with one `fast_run` call (right). This pair, the median of 3 recorded, took 70.4 s / $1.41 against 31.1 s / $0.45 at list price; the [benchmark](docs/benchmark.md) medians (N = 3, 2026-09-24) are 72.8 s / $2.34 against 24.7 s / $0.44.*
 
 **Fast, typed browser sub-tasks for coding agents.** jev-browse adds a few helpers to
 [browser-harness](https://github.com/browser-use/browser-harness) so that Claude Code or Codex can hand off a
