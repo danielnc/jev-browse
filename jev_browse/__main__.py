@@ -4,6 +4,7 @@
   uninstall   remove the harness helpers block and the skill links
   doctor      check the install and configuration, and print what is active
   config      print the active settings (--example: a commented config.toml; --markdown: the docs table)
+  mcp         run the MCP server on stdio (needs the `mcp` extra; see docs/mcp.md)
 """
 
 import sys
@@ -35,6 +36,22 @@ def config_main(argv, out=print):
     return 0
 
 
+MCP_HINT = ("jev-browse mcp needs the MCP SDK (the `mcp` extra): `uv tool install --reinstall \"jev-browse[mcp]\"` "
+            "(or `pipx install --force \"jev-browse[mcp]\"`); from a clone: "
+            "`uv run --directory <clone> --extra mcp jev-browse mcp`. See docs/mcp.md.")
+
+
+def mcp_main(argv):
+    try:
+        from .mcp_server import main as server_main
+    except ModuleNotFoundError as exc:
+        if exc.name and (exc.name == "mcp" or exc.name.startswith("mcp.") or exc.name in {"pydantic", "anyio"}):
+            print(MCP_HINT, file=sys.stderr)
+            return 1
+        raise
+    return server_main(argv)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if not argv or argv[0] in {"-h", "--help", "help"}:
@@ -55,6 +72,8 @@ def main(argv=None):
         return doctor_main(rest)
     if cmd == "config":
         return config_main(rest)
+    if cmd == "mcp":
+        return mcp_main(rest)
     print(f"unknown command {cmd!r}\n{__doc__}", file=sys.stderr)
     return 2
 

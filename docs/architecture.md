@@ -70,6 +70,7 @@ similar) are never read out of the page, so they are never sent anywhere.
 | `config.py` | Settings registry (env > file > default), thresholds and limits, verb and field patterns, host allowlist. |
 | `textnorm.py` | Case and diacritic folding, whole-word matching. |
 | `install.py`, `doctor.py`, `cleanup.py`, `__main__.py` | Install hooks, health checks, `make clean-traces`, and the CLI. |
+| `mcp_server.py`, `mcp_bridge.py` | `jev-browse mcp`: the MCP tools (needs the optional `mcp` extra; nothing the harness loads imports it) and the stdlib bridge that runs each call as a browser-harness script and turns results into text ([mcp.md](mcp.md)). |
 
 ## The decision loop (`fast_run`)
 
@@ -401,6 +402,13 @@ request unless `--offline`), harness health and telemetry, the block and skill l
 CLI's presence, or for a server backend a fresh canary unless `--no-canary`). Keys print only as set/unset and
 private URLs as `<set>`. It exits 1 on any failed check. `jev-browse config` lists every setting
 with its value and source.
+
+**MCP server.** `jev-browse mcp` (with the `mcp` extra) serves the helpers over MCP stdio. Each tool call pipes a
+generated script into the `browser-harness` CLI. The script calls one helper from the harness globals and prints a
+single `JEV_BROWSE_MCP={json}` line, and the bridge renders that line as text. Arguments travel as a JSON string
+literal, never as code, and every spawned script runs with `BH_TELEMETRY=0`. `fast_run` runs detached and writes its
+output to `jev-browse-mcp-<run_id>.log`. The tool returns `running` after `mcp.wait_s`, and `fast_run_status` reads
+the result from the log or the run file. See [mcp.md](mcp.md).
 
 ## Testing
 

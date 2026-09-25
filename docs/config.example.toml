@@ -91,3 +91,12 @@
 # Add label patterns that mark a field sensitive (never typed, read, or sent). Env:
 # JEV_BROWSE_SENSITIVE_PATTERNS_EXTRA
 # sensitive_patterns_extra = []
+
+[mcp]
+# The browser-harness command the MCP server runs each tool call through (a name on PATH or an
+# absolute path). Env: JEV_BROWSE_HARNESS_COMMAND
+# harness_command = "browser-harness"
+# Seconds an MCP tool call waits before returning. A longer fast_run then returns its run_id for
+# fast_run_status. Keep it below your MCP client's tool timeout (often 60 s). Env:
+# JEV_BROWSE_MCP_WAIT_S
+# wait_s = 45

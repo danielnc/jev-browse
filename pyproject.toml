@@ -34,6 +34,10 @@ Repository = "https://github.com/danielnc/jev-browse"
 Issues = "https://github.com/danielnc/jev-browse/issues"
 Changelog = "https://github.com/danielnc/jev-browse/blob/main/CHANGELOG.md"
 
+[project.optional-dependencies]
+# Only `jev-browse mcp` (jev_browse/mcp_server.py) imports it; the harness runtime stays stdlib-only.
+mcp = ["mcp>=2.2,<3"]
+
 [project.scripts]
 jev-browse = "jev_browse.__main__:main"
 
@@ -52,7 +56,7 @@ packages = ["jev_browse"]
 include = ["jev_browse/", "skill/", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"]
 
 [dependency-groups]
-dev = ["pytest", "ruff"]
+dev = ["pytest", "ruff", "mcp>=2.2,<3"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

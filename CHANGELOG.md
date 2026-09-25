@@ -7,11 +7,17 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 - PyPI packaging: `uv tool install jev-browse` (or `pipx install jev-browse`) gives a `jev-browse` command
-  (`install`, `uninstall`, `doctor`, `config`). The wheel bundles the skill, and `jev-browse install` links it
+  (`install`, `uninstall`, `doctor`, `config`, `mcp`). The wheel bundles the skill, and `jev-browse install` links it
   from the package.
 - A Claude Code plugin and marketplace: `/plugin marketplace add danielnc/jev-browse`, then
   `/plugin install jev-browse@jev-browse`. It ships the skill plus `/jev-browse:setup`.
 - A GitHub Actions workflow that publishes to PyPI on `v*` tags with Trusted Publishing (`docs/releasing.md`).
+- `jev-browse mcp`: an MCP server on stdio for Cursor, Claude Desktop, Codex, and other MCP clients (install with
+  `uv tool install "jev-browse[mcp]"`). Tools: `fast_run`, `fast_run_status`, `jev_open`, `jev_find`, `jev_click`,
+  `jev_check`, `jev_close`, `doctor`. Each call runs through the `browser-harness` CLI with harness telemetry off.
+  Results are concise text with a `next:` instruction. A `fast_run` longer than `mcp.wait_s` returns a resumable
+  `run_id`. The MCP SDK is the optional `mcp` extra; the harness runtime stays stdlib-only. See `docs/mcp.md`.
+- Settings `mcp.harness_command` and `mcp.wait_s`.
 
 ### Changed
 - The checkout launcher moved from `bin/jev-browse` to `scripts/jev-browse`. Claude Code puts a plugin's `bin/`
