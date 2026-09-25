@@ -5,6 +5,11 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- A demo GIF at the top of the README: a real benchmark pair on Google Flights, the agent alone against the
+  agent calling `fast_run`, with each run's time and list-price cost. `scripts/make_demo_gif.py` re-creates it
+  (`record`, `review`, `render`; see docs/benchmarking.md).
+
 ## [0.1.0] - 2026-09-24
 
 ### Added

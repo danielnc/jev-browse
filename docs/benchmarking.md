@@ -123,3 +123,25 @@ TypeSafe.
   or skills makes both arms more expensive. That is why turns cut matters more than Jev's own cost (cents).
 - Live sites change. A verifier that passed last month can fail on a redesign; check `raw/` before calling a
   regression.
+
+## The README demo (`scripts/make_demo_gif.py`)
+
+`docs/media/demo.gif` is a real benchmark pair on the `flights` task: arm B (the agent drives browser-harness) on
+the left, arm A-fast (the agent calls `fast_run`) on the right, both played at the same speed-up with the real
+elapsed time, the model-turn count, and the attempt's verified outcome and list-price cost. It was recorded on the
+author's machine on 2026-09-25: three pairs, and the GIF shows the one whose left-hand time is the median.
+Prices are in USD (`gl=US&curr=USD` is added to the Flights URL for the demo only).
+
+```bash
+PYTHONPATH=. python3 scripts/make_demo_gif.py record --task flights        # live; run it three times
+uv run --with pillow python3 scripts/make_demo_gif.py review bench/results/raw/demo/<stamp> --out /tmp/review
+uv run --with pillow python3 scripts/make_demo_gif.py render bench/results/raw/demo/<stamp-1> <stamp-2> <stamp-3>
+```
+
+- The recorder screenshots only the benchmark's own tabs, never the browser window, and crops the page header
+  (Google's account avatar) off every frame. The page itself can still show account details, such as a dropdown of
+  recent searches: review every frame and mask what you find in `<recording>/redact.json`.
+- Screenshots of a background tab are not free. A first version at 5 captures a second made Google Flights stop
+  answering on jev-browse's tab (`page unresponsive`) and made the right-hand run 4–5 times slower. The recorder now
+  captures at most twice a second, backs off after a slow capture, and logs every failed capture; `render` refuses a
+  recording where any capture failed.
