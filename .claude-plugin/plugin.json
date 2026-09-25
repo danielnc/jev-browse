@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "jev-browse",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fast, typed browser sub-tasks on browser-harness, decided by TypeSafe Jev: the jev-browse skill plus /jev-browse:setup",
   "author": { "name": "danielnc", "url": "https://github.com/danielnc" },
   "homepage": "https://github.com/danielnc/jev-browse",
