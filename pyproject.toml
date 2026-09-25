@@ -1,11 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
 [project]
 name = "jev-browse"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Typed, fast browser sub-tasks for Claude Code on browser-harness, decided by TypeSafe Jev"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.11"
 dependencies = []
+authors = [{ name = "jev-browse contributors" }]
+keywords = ["browser-automation", "browser-harness", "claude-code", "codex", "agent-skills", "cdp", "typesafe"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/danielnc/jev-browse"
+Documentation = "https://github.com/danielnc/jev-browse#readme"
+Repository = "https://github.com/danielnc/jev-browse"
+Issues = "https://github.com/danielnc/jev-browse/issues"
+Changelog = "https://github.com/danielnc/jev-browse/blob/main/CHANGELOG.md"
+
+[project.scripts]
+jev-browse = "jev_browse.__main__:main"
+
+[tool.hatch.version]
+path = "jev_browse/__init__.py"
+
+# The wheel carries jev_browse/ (with snapshot.js) plus the agent skill, bundled as jev_browse/skill so that
+# `jev-browse install` can link it from a package install.
+[tool.hatch.build.targets.wheel]
+packages = ["jev_browse"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"skill" = "jev_browse/skill"
+
+[tool.hatch.build.targets.sdist]
+include = ["jev_browse/", "skill/", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"]
 
 [dependency-groups]
 dev = ["pytest", "ruff"]
