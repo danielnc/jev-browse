@@ -1,0 +1,122 @@
+# Tests, lint, a packaged-install smoke test, and a secret scan on every pull request and push to main.
+# The `ci` job at the end is the one stable check to require in branch protection: it passes only if every other
+# job passed.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: test (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # pyproject: requires-python = ">=3.11"
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install (dev tools and the mcp extra)
+        run: uv sync --locked --extra mcp
+
+      - name: pytest
+        run: uv run pytest -q
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: ruff
+        run: uv run --locked ruff check .
+
+      - name: snapshot.js syntax
+        run: node --check jev_browse/snapshot.js
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Build the sdist and wheel
+        run: uv build
+
+      - name: Install the wheel in a clean venv and run the command
+        # Run outside the checkout so the import can only come from the installed wheel.
+        working-directory: ${{ runner.temp }}
+        env:
+          DIST: ${{ github.workspace }}/dist
+        run: |
+          uv venv smoke
+          uv pip install --python smoke/bin/python "$DIST"/*.whl
+          smoke/bin/jev-browse --help
+          smoke/bin/jev-browse doctor --help
+          smoke/bin/python -c 'from jev_browse import install; assert (install.SKILL_DIR / "SKILL.md").is_file(); assert install.CLI == "jev-browse"'
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb # linux_x64 tarball
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the full history, every branch and tag
+          persist-credentials: false
+
+      - name: Install gitleaks (pinned release, checksum verified)
+        working-directory: ${{ runner.temp }}
+        run: |
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$tarball" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+          echo "${GITLEAKS_SHA256}  ${tarball}" | sha256sum --check --strict
+          tar -xzf "$tarball" gitleaks
+
+      - name: Scan the full git history
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose --log-opts="--all" --config .gitleaks.toml .'
+
+  ci:
+    name: ci
+    if: always()
+    needs: [test, lint, package, gitleaks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "::error::a required job did not succeed ($r)"
+              exit 1
+            fi
+          done
