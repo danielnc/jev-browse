@@ -14,7 +14,8 @@ pre-commit install      # optional: the gitleaks hook blocks commits that contai
 `make check` needs no network, no TypeSafe key, and no browser: every external service is faked.
 
 To try your changes in a real browser, install from your checkout (`python3 -m jev_browse install`) and run
-`python3 -m jev_browse doctor`. See `install.md`.
+`python3 -m jev_browse doctor`. See `install.md`. To test the packaged install, `uv build` and install the wheel
+into a fresh venv. Releases are cut by the maintainer: see [docs/releasing.md](docs/releasing.md).
 
 ## Making a change
 
