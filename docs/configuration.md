@@ -44,7 +44,7 @@ python3 -m jev_browse config --example > ~/.config/jev-browse/config.toml   # a 
 | `TYPESAFE_API_KEY` | TypeSafe API key (**required**). Keep it in the browser-harness agent-workspace `.env`. |
 | `JEV_BROWSE_CONFIG` | Path of the config file. |
 | `JEV_BROWSE_DISABLE` | `1` = the harness helpers are stubs that raise (jev-browse off, harness untouched). |
-| `JEV_BROWSE_OWNER` | Tab-ownership tag. Set one per parallel agent (default: the Claude Code session id). |
+| `JEV_BROWSE_OWNER` | Tab-ownership tag. Set one per parallel agent (default: the Claude Code session id; `mcp-<random>` per `jev-browse mcp` server). |
 | `JEV_BROWSE_OPENAI_API_KEY` | Default variable holding the `openai` backend's key (rename it with `openai.api_key_env`). |
 
 ## All settings
@@ -81,6 +81,8 @@ python3 -m jev_browse config --example > ~/.config/jev-browse/config.toml   # a 
 | `safety.commit_verbs` | `JEV_BROWSE_COMMIT_VERBS` | unset | Replace the built-in commit-verb list (empty disables the verb check). |
 | `safety.commit_verbs_extra` | `JEV_BROWSE_COMMIT_VERBS_EXTRA` | unset | Add commit verbs to the list. |
 | `safety.sensitive_patterns_extra` | `JEV_BROWSE_SENSITIVE_PATTERNS_EXTRA` | unset | Add label patterns that mark a field sensitive (never typed, read, or sent). |
+| `mcp.harness_command` | `JEV_BROWSE_HARNESS_COMMAND` | `"browser-harness"` | The browser-harness command the MCP server runs each tool call through (a name on PATH or an absolute path). |
+| `mcp.wait_s` | `JEV_BROWSE_MCP_WAIT_S` | `45` | Seconds an MCP tool call waits before returning. A longer fast_run then returns its run_id for fast_run_status. Keep it below your MCP client's tool timeout (often 60 s). |
 <!-- settings:end -->
 
 ## Common setups

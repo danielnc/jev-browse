@@ -103,6 +103,13 @@ _S = [
             "Add commit verbs to the list."),
     Setting("safety.sensitive_patterns_extra", "JEV_BROWSE_SENSITIVE_PATTERNS_EXTRA", "list", None,
             "Add label patterns that mark a field sensitive (never typed, read, or sent)."),
+    # MCP server (`jev-browse mcp`)
+    Setting("mcp.harness_command", "JEV_BROWSE_HARNESS_COMMAND", "str", "browser-harness",
+            "The browser-harness command the MCP server runs each tool call through (a name on PATH or an "
+            "absolute path)."),
+    Setting("mcp.wait_s", "JEV_BROWSE_MCP_WAIT_S", "int", 45,
+            "Seconds an MCP tool call waits before returning. A longer fast_run then returns its run_id for "
+            "fast_run_status. Keep it below your MCP client's tool timeout (often 60 s).", minimum=1),
 ]
 SETTINGS = {s.key: s for s in _S}
 
@@ -111,7 +118,8 @@ ENV_ONLY = {
     "TYPESAFE_API_KEY": "TypeSafe API key (required). Keep it in the browser-harness agent-workspace .env.",
     "JEV_BROWSE_CONFIG": "Path of the config file.",
     "JEV_BROWSE_DISABLE": "1 = the harness helpers are stubs that raise.",
-    "JEV_BROWSE_OWNER": "Tab-ownership tag; set one per parallel agent (default: the Claude Code session id).",
+    "JEV_BROWSE_OWNER": "Tab-ownership tag; set one per parallel agent (default: the Claude Code session id; "
+                        "`mcp-<random>` per `jev-browse mcp` server).",
     "JEV_BROWSE_OPENAI_API_KEY": "Default variable holding the openai backend's key (see openai.api_key_env).",
 }
 

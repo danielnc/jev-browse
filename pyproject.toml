@@ -7,8 +7,12 @@ license = { text = "MIT" }
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+# Only `jev-browse mcp` (jev_browse/mcp_server.py) imports it; the harness runtime stays stdlib-only.
+mcp = ["mcp>=2.2,<3"]
+
 [dependency-groups]
-dev = ["pytest", "ruff"]
+dev = ["pytest", "ruff", "mcp>=2.2,<3"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
