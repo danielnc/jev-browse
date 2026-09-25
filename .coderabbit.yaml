@@ -50,3 +50,18 @@ reviews:
       instructions: >-
         Actions must be pinned to full commit SHAs with a version comment, permissions least-privilege
         (workflow default contents: read), and no secrets or tokens in the repository.
+  pre_merge_checks:
+    # The built-in docstring check has only mode and threshold: it would count every function a PR touches,
+    # including tests, bench/ and scripts/. The custom check below scopes it to the public jev_browse/ API instead.
+    docstrings:
+      mode: "off"
+    custom_checks:
+      - name: "Public API docstrings"
+        mode: warning
+        instructions: >-
+          Consider only functions, async functions, and classes defined at module level, and methods of those
+          classes, in Python files under jev_browse/ that this pull request adds or changes, and only those whose
+          name does not start with an underscore. Ignore everything under tests/, bench/, and scripts/, and
+          ignore private (underscore) names and nested functions. Count how many of those definitions have a
+          docstring. Pass if the count is zero or at least 80% have a docstring; otherwise fail and list the
+          public definitions that lack one, as path:line name.
