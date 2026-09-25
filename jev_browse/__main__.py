@@ -11,6 +11,8 @@ import sys
 
 
 def config_main(argv, out=print):
+    """`config`: print every setting's value and source (and any problems), or with --example a
+    commented config.toml, or with --markdown the settings table for docs/configuration.md. Returns 0."""
     import argparse
 
     from . import config
@@ -42,6 +44,7 @@ MCP_HINT = ("jev-browse mcp needs the MCP SDK (the `mcp` extra): `uv tool instal
 
 
 def mcp_main(argv):
+    """`mcp`: run the MCP server on stdio. Returns 1 with an install hint if the `mcp` extra is missing."""
     try:
         from .mcp_server import main as server_main
     except ModuleNotFoundError as exc:
@@ -53,6 +56,8 @@ def mcp_main(argv):
 
 
 def main(argv=None):
+    """Dispatch `jev-browse <command> [args]` (argv defaults to sys.argv[1:]). Returns the exit status: the
+    command's own, 0 for help, or 2 for an unknown command."""
     argv = sys.argv[1:] if argv is None else argv
     if not argv or argv[0] in {"-h", "--help", "help"}:
         print(__doc__)

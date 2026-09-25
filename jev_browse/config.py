@@ -24,6 +24,7 @@ FALSE = {"0", "false", "no", "off"}
 
 @dataclass(frozen=True)
 class Setting:
+    """One registered setting: its TOML key, environment names, type, default, and docs line."""
     key: str                 # dotted TOML key: [section] name
     env: str                 # canonical environment variable
     kind: str                # str | int | bool | choice | list
@@ -125,6 +126,7 @@ ENV_ONLY = {
 
 
 def all_env_names():
+    """Every environment variable jev-browse reads: each setting's names (with aliases) plus ENV_ONLY."""
     return [e for s in _S for e in s.envs] + list(ENV_ONLY)
 
 
@@ -133,6 +135,7 @@ def _which(name):
 
 
 def config_path():
+    """The config file: $JEV_BROWSE_CONFIG, else $XDG_CONFIG_HOME (or ~/.config)/jev-browse/config.toml."""
     if os.environ.get("JEV_BROWSE_CONFIG"):
         return Path(os.environ["JEV_BROWSE_CONFIG"]).expanduser()
     base = os.environ.get("XDG_CONFIG_HOME")
@@ -140,6 +143,7 @@ def config_path():
 
 
 def flatten(data, prefix=""):
+    """Flatten nested TOML tables into dotted keys: {"run": {"timeout_s": 90}} -> {"run.timeout_s": 90}."""
     out = {}
     for k, v in data.items():
         key = f"{prefix}{k}"
@@ -155,6 +159,7 @@ _file_lock = threading.Lock()
 
 
 def reset_cache():
+    """Forget the parsed config file, so the next read picks up changes (and a changed $JEV_BROWSE_CONFIG)."""
     with _file_lock:
         _file_cache.update(stamp=None, values={}, error=None)
 
@@ -235,10 +240,13 @@ def _lookup(key):
 
 
 def get(key):
+    """The effective value of setting `key`: environment, then the config file, then the default. An invalid
+    value falls back to the default (and is reported by problems())."""
     return _lookup(key)[0]
 
 
 def source(key):
+    """Where `key`'s effective value came from: "env", "file", or "default"."""
     return _lookup(key)[1]
 
 
@@ -325,18 +333,22 @@ def commit_verbs():
 
 
 def generic_confirmations():
+    """The built-in generic confirmation labels ("yes", "ok", "continue", ...), case- and diacritic-folded."""
     return [fold(v) for v in GENERIC_CONFIRMATIONS]
 
 
 def sensitive_patterns():
+    """Folded label patterns of sensitive fields: the built-ins plus safety.sensitive_patterns_extra."""
     return [fold(p) for p in SENSITIVE_PATTERNS] + (_folded("safety.sensitive_patterns_extra") or [])
 
 
 def value_heads():
+    """Setting values.heads: the most fields that get a value question in one Jev request."""
     return get("values.heads")
 
 
 def value_candidates_enabled():
+    """Setting values.candidates: whether goal-derived value candidates are offered to Jev."""
     return get("values.candidates")
 
 
@@ -345,26 +357,33 @@ def _auto_cli(value):
 
 
 def text_backend_name(explicit=None):
+    """The text backend to use: `explicit` if given, else text.backend with "auto" resolved to "claude"
+    (when its CLI is on PATH) or "none"."""
     return explicit or _auto_cli(get("text.backend"))
 
 
 def text_fallback_name():
+    """The fallback for a failing local or OpenAI-compatible backend (text.fallback, "auto" resolved)."""
     return _auto_cli(get("text.fallback"))
 
 
 def text_model():
+    """The model the claude text backend uses (claude.model)."""
     return get("claude.model")
 
 
 def disabled():
+    """True if JEV_BROWSE_DISABLE is set to a true value (the installed harness block then defines stubs that raise)."""
     return os.environ.get("JEV_BROWSE_DISABLE", "").strip().lower() in TRUE
 
 
 def owner_tag():
+    """This session's tab-owner tag: $JEV_BROWSE_OWNER, else the Claude Code session id, else "unknown"."""
     return os.environ.get("JEV_BROWSE_OWNER") or os.environ.get("CLAUDE_CODE_SESSION_ID") or "unknown"
 
 
 def allowed_hosts():
+    """The lower-cased safety.allowed_hosts list, or None when every host is allowed."""
     hosts = [h.lower() for h in get("safety.allowed_hosts") or []]
     return hosts or None
 
@@ -389,6 +408,7 @@ def host_allowed(url):
 
 
 def key_detail():
+    """The hand-back detail for a missing TypeSafe key: a fixed message, never a key or a real path."""
     return "TYPESAFE_API_KEY not set (expected in <workspace>/.env)"
 
 
@@ -467,6 +487,7 @@ def example_toml():
 
 
 def markdown_table():
+    """The settings table in docs/configuration.md, generated from the registry (`make docs-gen`)."""
     rows = ["| Key (`config.toml`) | Environment | Default | Meaning |", "|---|---|---|---|"]
     for s in _S:
         default = "unset" if s.default is None else f"`{_toml_value(s.default)}`"

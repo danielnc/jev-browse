@@ -24,12 +24,14 @@ def _helpers():
 
 
 def cdp(method, session_id=None, _response_timeout=5.0, **params):
+    """Send one raw CDP command through the harness daemon (to `session_id`'s target if given); returns its result."""
     if _fake is not None:
         return _fake(method, session_id=session_id, _response_timeout=_response_timeout, **params)
     return _helpers().cdp(method, session_id=session_id, _response_timeout=_response_timeout, **params)
 
 
 def current_tab():
+    """The harness daemon's current tab (read-only: jev-browse never switches it)."""
     if _fake is not None:
         return _fake.current_tab()
     return _helpers().current_tab()
@@ -52,6 +54,7 @@ def socket_dir():
 
 
 def tmp_dir():
+    """The harness tmp dir (run files, traces, caches); resolved as the harness does when it is not importable."""
     if _fake is not None:
         return Path(getattr(_fake, "tmp_dir", "/tmp"))
     try:
@@ -69,14 +72,17 @@ def tmp_dir():
 
 
 def daemon_name():
+    """The harness daemon's name (BU_NAME), which scopes jev-browse's tab registries."""
     if _fake is not None:
         return getattr(_fake, "daemon_name", "default")
     return _helpers().NAME
 
 
 def is_ipc_timeout(exc):
+    """True if `exc` is the harness IPC timing out (the daemon is alive but slow)."""
     return isinstance(exc, TimeoutError)
 
 
 def is_unreachable(exc):
+    """True if `exc` means the harness daemon or its socket is gone."""
     return isinstance(exc, (FileNotFoundError, ConnectionRefusedError, ConnectionResetError, BrokenPipeError))

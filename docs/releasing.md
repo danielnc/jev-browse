@@ -43,8 +43,8 @@ Do this once, before the first release.
 3. Tag the merge commit on `main` and push the tag:
 
    ```bash
-   git tag -a v0.1.0 -m "jev-browse 0.1.0"
-   git push origin v0.1.0
+   git tag -a v0.2.0 -m "jev-browse 0.2.0"
+   git push origin v0.2.0
    ```
 
 4. The workflow checks that the tag equals `v` + `jev_browse.__version__`, runs the linter and tests, builds the

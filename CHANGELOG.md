@@ -5,6 +5,11 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-25
+
+The first release published to PyPI. The `v0.1.0` tag predates the packaging and was never uploaded, so this is
+the first version that `uv tool install jev-browse` or `pipx install jev-browse` can install.
+
 ### Added
 - CI on pull requests and `main`: pytest on Python 3.11–3.14 (with the `mcp` extra), ruff, a wheel build and
   clean-venv smoke test, and a full-history gitleaks scan, summarised by one `ci` check. Plus CodeQL, Dependabot
@@ -24,6 +29,11 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - A demo GIF at the top of the README: a real benchmark pair on Google Flights, the agent alone against the
   agent calling `fast_run`, with each run's time and list-price cost. `scripts/make_demo_gif.py` re-creates it
   (`record`, `review`, `render`; see docs/benchmarking.md).
+- Codecov coverage upload from CI (one Python version), and README badges for PyPI, Python versions,
+  Codecov, CodeRabbit reviews, and the license.
+- Docstrings on the public API (`fast_run`, the `jev_*` helpers, the CLI, `config`, `doctor`, `harness_api`) and on
+  `scripts/make_demo_gif.py`; a CodeRabbit pre-merge check for docstrings on public `jev_browse/` functions.
+- Offline tests for the `jev-browse` command dispatch and the browser-harness adapter (`harness_api`).
 
 ### Changed
 - The checkout launcher moved from `bin/jev-browse` to `scripts/jev-browse`. Claude Code puts a plugin's `bin/`
@@ -52,3 +62,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
   (`bench/text_eval.py`).
 
 Ports code from [browser-use/jev-ultrafast](https://github.com/browser-use/jev-ultrafast) (MIT).
+
+[Unreleased]: https://github.com/danielnc/jev-browse/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/danielnc/jev-browse/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/danielnc/jev-browse/releases/tag/v0.1.0

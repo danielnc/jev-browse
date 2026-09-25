@@ -647,7 +647,18 @@ def fast_run(url, goal, *, target_id=None, values=None, confirm=(), run_id=None,
              _backend=None, _out=print):
     """Run a well-specified browser sub-task on an owned background tab. Returns a RunResult whose status is
     claimed_done (never proof: verify in the tab), blocked, or handed_back (with a typed Reason). Budgets and the
-    text settings left as None come from the config (run.*, text.*)."""
+    text settings left as None come from the config (run.*, text.*).
+
+    url: the page to open in a new owned tab, or None to resume on `target_id` (a tab jev-browse owns).
+    goal: the task in plain words; values it states are offered to Jev as candidates.
+    values: {field label or data.fields key: value}, or a list of candidate values for every field.
+    confirm: the JEV_BROWSE_CONFIRM entries of commit clicks you authorised after a confirm_required hand-back.
+    run_id: names the run file ([A-Za-z0-9_-]{1,64}; default: a timestamp plus random hex).
+    keep_open: False closes the tab after claimed_done; any other outcome always leaves it open.
+    screenshot: save a screenshot with the evidence (evidence.screenshot_path).
+
+    Prints JEV_BROWSE_RUN=<run file> first and JEV_BROWSE_RESULT=<json> at the end. Raises ValueError for an
+    empty goal, neither url nor target_id, an invalid run_id, or the run_id of a live run."""
     max_actions = config.get("run.max_actions") if max_actions is None else max_actions
     max_requests = config.get("run.max_requests") if max_requests is None else max_requests
     timeout_s = config.get("run.timeout_s") if timeout_s is None else timeout_s

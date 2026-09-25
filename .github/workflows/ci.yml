@@ -37,7 +37,21 @@ jobs:
         run: uv sync --locked --extra mcp
 
       - name: pytest
+        if: matrix.python != '3.13'
         run: uv run pytest -q
+
+      # Coverage is measured on one Python version only, and uploading it can never fail CI.
+      - name: pytest with coverage
+        if: matrix.python == '3.13'
+        run: uv run pytest -q --cov=jev_browse --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        if: matrix.python == '3.13'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
 
   lint:
     name: lint
