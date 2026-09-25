@@ -30,12 +30,13 @@ its default, and `jev-browse doctor` reports the problem.
 Check what is active:
 
 ```bash
-python3 -m jev_browse config          # every setting, its value, and where it came from
-python3 -m jev_browse doctor          # checks install, key, harness, text backend (+ canary), then a summary
-python3 -m jev_browse config --example > ~/.config/jev-browse/config.toml   # a commented starting point
+jev-browse config          # every setting, its value, and where it came from
+jev-browse doctor          # checks install, key, harness, text backend (+ canary), then a summary
+jev-browse config --example > ~/.config/jev-browse/config.toml   # a commented starting point
 ```
 
-(`bin/jev-browse <command>` does the same from any directory; symlink it onto your `PATH` if you like.)
+(From a git checkout instead of a package install, run `python3 -m jev_browse <command>` in the checkout, or
+`scripts/jev-browse <command>` from any directory.)
 
 ## Environment-only variables
 
