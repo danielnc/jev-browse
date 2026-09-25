@@ -5,6 +5,14 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `jev-browse mcp` (`python -m jev_browse mcp`): an MCP server on stdio for Cursor, Claude Desktop, Codex, and other
+  MCP clients. Tools: `fast_run`, `fast_run_status`, `jev_open`, `jev_find`, `jev_click`, `jev_check`, `jev_close`,
+  `doctor`. Each call runs through the `browser-harness` CLI with harness telemetry off. Results are concise text
+  with a `next:` instruction. A `fast_run` longer than `mcp.wait_s` returns a resumable `run_id`. The MCP SDK is
+  the optional `mcp` extra; the harness runtime stays stdlib-only. See `docs/mcp.md`.
+- Settings `mcp.harness_command` and `mcp.wait_s`.
+
 ## [0.1.0] - 2026-09-24
 
 ### Added

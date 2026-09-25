@@ -193,6 +193,20 @@ jev-browse from a browser-harness script. You don't need to load its skill first
 
 The same snippet is in [docs/global-pointer.md](docs/global-pointer.md).
 
+## Use it from any MCP client
+
+Cursor, Claude Desktop, Codex, Windsurf, and other MCP clients can use jev-browse through its MCP server, which runs
+on stdio. Each tool call goes through browser-harness exactly as a script would, so ownership, config, and
+hand-backs are unchanged:
+
+```bash
+uv run --directory /path/to/jev-browse --extra mcp python -m jev_browse mcp
+```
+
+Tools: `fast_run`, `fast_run_status`, `jev_open`, `jev_find`, `jev_click`, `jev_check`, `jev_close`, `doctor`. A
+`fast_run` that outlasts the client's tool timeout returns a `run_id` to resume with `fast_run_status`. Config
+snippets for Claude Desktop, Cursor, and Codex are in [docs/mcp.md](docs/mcp.md).
+
 ## Limitations
 
 - No iframes, shadow DOM, canvas or visual understanding, file uploads, or pop-up tabs: these hand back.
@@ -221,6 +235,7 @@ backend, with `bench/` ([docs/benchmarking.md](docs/benchmarking.md)).
 - [docs/configuration.md](docs/configuration.md): every setting
 - [docs/backends.md](docs/backends.md): text backends and their trade-offs
 - [docs/benchmarking.md](docs/benchmarking.md): running the benchmark and `text_eval`
+- [docs/mcp.md](docs/mcp.md): the MCP server and client configuration
 - [skill/SKILL.md](skill/SKILL.md) and [skill/reference.md](skill/reference.md): what the agent reads
 
 ## Contributing
