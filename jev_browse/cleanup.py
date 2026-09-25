@@ -1,4 +1,4 @@
-"""`make clean-traces` helper: delete jev-browse run, trace, and screenshot files in the harness tmp dir.
+"""`make clean-traces` helper: delete jev-browse run, trace, screenshot, and MCP log files in the harness tmp dir.
 
 Never touches the owned-tab registry or the new_tab provenance file, and skips the run file of a live,
 unfinished run (its pid is alive and `final` is false).
@@ -9,7 +9,7 @@ import os
 import sys
 from pathlib import Path
 
-PATTERNS = ("jev-browse-run-*.json", "jev-browse-trace-*", "jev-browse-shot-*")
+PATTERNS = ("jev-browse-run-*.json", "jev-browse-trace-*", "jev-browse-shot-*", "jev-browse-mcp-*.log")
 
 
 def _pid_alive(pid):
