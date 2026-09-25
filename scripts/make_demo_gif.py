@@ -121,6 +121,7 @@ print("RECORDER_DONE", n)
 
 # --------------------------------------------------------------------------------------------------------- record
 class Recorder:
+    """Screenshots the benchmark's own tab from a separate browser-harness process while an attempt runs."""
     def __init__(self, rb, prep, out_dir):
         self.rb, self.prep, self.out = rb, prep, Path(out_dir)
         self.stop_file = self.out / "STOP"
@@ -128,6 +129,7 @@ class Recorder:
         self.clean = False
 
     def start(self):
+        """Start the capture process and wait (up to 20 s) for its first frame; raises if none arrives."""
         from jev_browse.tab import Registry
         self.out.mkdir(parents=True, exist_ok=True)
         self.stop_file.unlink(missing_ok=True)
@@ -149,6 +151,7 @@ class Recorder:
             time.sleep(0.1)
 
     def stop(self):
+        """Signal the capture process to stop and wait for it; sets `clean` if it finished normally."""
         self.stop_file.touch()
         try:
             out, err = self.proc.communicate(timeout=30)
@@ -231,6 +234,7 @@ MAX_END_GAP_S = 2.0
 
 
 def record(args):
+    """`record`: run arms B and A-fast on one task through the benchmark, capturing each tab (live)."""
     from bench import arms as ARMS_MOD
     from bench import run_bench as RB
     from bench.tasks import load_tasks
@@ -287,14 +291,18 @@ BG, FG, MUTED, OK, SLOW = (18, 20, 24), (236, 238, 242), (150, 156, 168), (74, 2
 
 
 def speed_for(longest, budget=32.0):
+    """The slowest playback speed from a fixed list that fits `longest` seconds into about `budget` seconds."""
     return next((s for s in (1, 1.5, 2, 2.5, 3, 4, 5, 6) if longest / s <= budget), 8)
 
 
 def fmt_speed(s):
+    """A playback speed as a label: 2.5 -> "2.5x"."""
     return f"{s:g}x"  # the default font has no multiplication sign
 
 
 def load_arm(rec_dir, arm, crop_w, crop_h, crop_top=0):
+    """Load one arm of a recording. Returns its row, meta, turns, frames, pane height, and `image_at(t)`,
+    which gives the cropped, redacted pane image (and URL) shown at time t."""
     from PIL import Image, ImageDraw, ImageFont
 
     d = Path(rec_dir) / arm
@@ -339,6 +347,7 @@ def load_arm(rec_dir, arm, crop_w, crop_h, crop_top=0):
 
 
 def crop_for(task_key, args):
+    """The (width, height, top) crop in CSS px for a task, with --crop-* overrides from `args`."""
     crop_w, crop_h = CROP.get(task_key, (1500, 900))
     top = CROP_TOP.get(task_key, 0) if args.crop_top is None else args.crop_top
     return args.crop_width or crop_w, args.crop_height or crop_h, top
@@ -372,6 +381,7 @@ def review(args):
 
 
 def recorder_problem(stats):
+    """Why a recording is unusable (stalled, empty, unclean, or ended early), or None if it is fine."""
     if stats.get("errors", 1):
         return "the recorder stalled (failed captures)"
     if not stats.get("frames"):
@@ -402,6 +412,7 @@ def pick_median(recs):
 
 
 def render(args):
+    """`render`: pick the median recorded pair, refuse unusable ones, and encode the side-by-side GIF."""
     from PIL import Image, ImageDraw, ImageFont
 
     recs = [(Path(r), json.loads((Path(r) / "recording.json").read_text())) for r in args.recording]
@@ -486,6 +497,7 @@ def render(args):
 
 
 def main(argv=None):
+    """Parse `record` / `review` / `render` and run it."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("record", help="run arms B and A-fast on one task and capture their tabs (live)")

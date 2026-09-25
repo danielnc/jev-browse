@@ -21,6 +21,7 @@ OK, WARN, FAIL, INFO = "ok", "warn", "FAIL", "info"
 
 @dataclass
 class Check:
+    """One doctor line: status (ok, warn, FAIL, info), the thing checked, and a detail with no secrets."""
     status: str
     name: str
     detail: str
@@ -58,12 +59,14 @@ def _run(argv, timeout=20):
 
 
 def check_python():
+    """FAIL unless this interpreter is Python 3.11+."""
     ok = sys.version_info >= (3, 11)
     return Check(OK if ok else FAIL, "python", f"{sys.version.split()[0]} ({sys.executable})"
                  + ("" if ok else "; jev-browse needs 3.11+"))
 
 
 def check_config():
+    """Where the config file is, plus a warning per invalid value or unknown key."""
     path = config.config_path()
     out = [Check(INFO, "config file", f"{path} ({'found' if path.exists() else 'not present; defaults apply'})")]
     for key, msg in config.problems():
@@ -72,6 +75,7 @@ def check_config():
 
 
 def check_key(offline, client_factory=None):
+    """Is TYPESAFE_API_KEY set, and (unless `offline`) does one tiny TypeSafe request succeed?"""
     if not os.environ.get("TYPESAFE_API_KEY"):
         return Check(FAIL, "TYPESAFE_API_KEY", "not set; add it to the browser-harness agent-workspace .env "
                      "(get a key at https://console.typesafe.ai/keys)")
@@ -91,6 +95,7 @@ def check_key(offline, client_factory=None):
 
 
 def check_harness(run=_run, telemetry=install.telemetry_enabled):
+    """Is browser-harness on PATH and healthy, and is its telemetry on? (`run` and `telemetry` are test seams.)"""
     rc, out, err = run(["browser-harness", "--version"])
     if rc is None:
         return [Check(FAIL, "browser-harness", "not on PATH; install it: https://github.com/browser-use/browser-harness")]
@@ -113,6 +118,7 @@ def check_harness(run=_run, telemetry=install.telemetry_enabled):
 
 
 def check_install(workspace=None, skill_dirs=None):
+    """Is the current helpers block in the harness agent_helpers.py, and is the skill linked for an agent?"""
     out = []
     helpers = Path(workspace or install.workspace_dir()) / "agent_helpers.py"
     text = helpers.read_text() if helpers.exists() else ""
@@ -138,6 +144,8 @@ def check_install(workspace=None, skill_dirs=None):
 
 
 def check_text_backend(offline, no_canary, run=_run):
+    """The active text backend, its CLI, its fallback, and (for ollama/openai, unless `offline` or
+    `no_canary`) a fresh known-answer canary."""
     from . import textgen
 
     out = []
@@ -177,6 +185,7 @@ def check_text_backend(offline, no_canary, run=_run):
 
 
 def summary_lines():
+    """The three summary lines doctor prints first: version and location, model and budgets, hosts and canary."""
     budgets = f"{config.get('run.max_actions')} actions, {config.get('run.max_requests')} requests, " \
               f"{config.get('run.timeout_s')} s"
     hosts = config.allowed_hosts()
@@ -188,6 +197,8 @@ def summary_lines():
 
 
 def main(argv=None, *, out=print):
+    """`jev-browse doctor [--offline] [--no-canary] [--workspace DIR]`: print every check. Returns 1 if any check
+    FAILs, else 0."""
     import argparse
 
     ap = argparse.ArgumentParser(prog=f"{install.CLI} doctor")

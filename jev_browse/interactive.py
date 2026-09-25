@@ -163,7 +163,8 @@ def _call_info(target_id):
 
 @_guard
 def jev_adopt(target_id, *, _tab_holder=None):
-    """Take over a tab you created with the harness's new_tab(): name its id explicitly."""
+    """Take over a tab you created with the harness's new_tab(): name its id explicitly. Returns
+    {target_id, url, title}, or a HandBack (not_owned_tab for any tab new_tab() did not create)."""
     _preflight()
     if not target_id:
         return _hb(Reason.not_owned_tab, "pass the target id new_tab() returned")
@@ -378,7 +379,8 @@ def jev_click(found, *, target_id=None, confirm=False, _tab_holder=None):
 # ------------------------------------------------------------------------------------------------ check
 @_guard
 def jev_check(condition, *, target_id=None, _tab_holder=None):
-    """Is `condition` true of the owned page? A navigation aid, never a verifier of claimed_done."""
+    """Is `condition` true of the owned page? A navigation aid, never a verifier of claimed_done. Returns a
+    CheckResult (probability, holds, evidence_line, lines_truncated) or a HandBack."""
     _preflight()
     tab = _need(_resolve(target_id))
     _tab_holder.append(tab)
