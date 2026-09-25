@@ -143,5 +143,6 @@ uv run --with pillow python3 scripts/make_demo_gif.py render bench/results/raw/d
   recent searches: review every frame and mask what you find in `<recording>/redact.json`.
 - Screenshots of a background tab are not free. A first version at 5 captures a second made Google Flights stop
   answering on jev-browse's tab (`page unresponsive`) and made the right-hand run 4–5 times slower. The recorder now
-  captures at most twice a second, backs off after a slow capture, and logs every failed capture; `render` refuses a
-  recording where any capture failed.
+  captures at most twice a second, backs off after a slow capture, logs every failed capture, and takes a final
+  frame after the agent exits. `render` refuses a recording with a failed capture, no frames, no clean finish, or a
+  last frame more than 2 s before the end of the run.

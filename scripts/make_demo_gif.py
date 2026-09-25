@@ -63,7 +63,8 @@ frames = out / "frames"
 frames.mkdir(parents=True, exist_ok=True)
 log = open(out / "frames.jsonl", "a")
 sessions, n = {}, 0
-while not stop.exists():
+def capture():
+    global n
     tick = time.time()
     try:
         pages = {t["targetId"]: t for t in cdp("Target.getTargets")["targetInfos"] if t.get("type") == "page"}
@@ -78,8 +79,7 @@ while not stop.exists():
                 if cand in pages and created >= t0 - 1 and created > newest:
                     tid, newest = cand, created
         if tid not in pages:
-            time.sleep(PERIOD)
-            continue
+            return PERIOD
         if tid not in sessions:
             sessions[tid] = cdp("Target.attachToTarget", targetId=tid, flatten=True)["sessionId"]
         sid = sessions[tid]
@@ -96,16 +96,25 @@ while not stop.exists():
                               "css_height": vp["clientHeight"]}) + "\n")
         log.flush()
         n += 1
+        return cost
     except Exception as exc:
-        cost = 1.0
         log.write(json.dumps({"t": tick, "error": str(exc)[:200]}) + "\n")
         log.flush()
+        return 1.0
+
+
+while not stop.exists():
+    tick = time.time()
+    cost = capture()
     time.sleep(max(PERIOD - (time.time() - tick), 3 * cost))
+capture()  # the page as the attempt left it (the tab is still open: the bench closes it later)
 for sid in sessions.values():
     try:
         cdp("Target.detachFromTarget", sessionId=sid)
     except Exception:
         pass
+log.write(json.dumps({"t": time.time(), "done": n}) + "\n")
+log.close()
 print("RECORDER_DONE", n)
 '''
 
@@ -116,6 +125,7 @@ class Recorder:
         self.rb, self.prep, self.out = rb, prep, Path(out_dir)
         self.stop_file = self.out / "STOP"
         self.proc = None
+        self.clean = False
 
     def start(self):
         from jev_browse.tab import Registry
@@ -130,9 +140,12 @@ class Recorder:
         self.proc.stdin.write(head + RECORDER)
         self.proc.stdin.close()
         deadline = time.time() + 20
-        while time.time() < deadline and not any((self.out / "frames").glob("*.jpg")):
+        while not any((self.out / "frames").glob("*.jpg")):
             if self.proc.poll() is not None:
                 raise RuntimeError("recorder exited early: " + self.proc.stderr.read()[-600:])
+            if time.time() > deadline:
+                self.stop()
+                raise RuntimeError("recorder captured no frame in 20 s; not starting the attempt")
             time.sleep(0.1)
 
     def stop(self):
@@ -143,7 +156,8 @@ class Recorder:
             self.proc.kill()
             out, err = self.proc.communicate()
         self.stop_file.unlink(missing_ok=True)
-        if "RECORDER_DONE" not in (out or ""):
+        self.clean = "RECORDER_DONE" in (out or "")
+        if not self.clean:
             print("recorder did not finish cleanly:", (err or "")[-600:], file=sys.stderr)
 
 
@@ -201,11 +215,19 @@ def stream_timeline(line_times):
     return turns, model
 
 
-def recorder_stats(frames_jsonl):
+def recorder_stats(frames_jsonl, t0, wall_s):
+    """Frame count, failed captures, capture cost, whether the recorder wrote its done marker, and how many seconds
+    before the attempt's end the last frame was taken (it takes a final frame after the agent exits)."""
     rows = [json.loads(line) for line in Path(frames_jsonl).read_text().splitlines()]
-    ms = sorted(r["capture_ms"] for r in rows if "capture_ms" in r)
-    return {"frames": len(ms), "errors": sum(1 for r in rows if "error" in r),
-            "capture_ms_median": ms[len(ms) // 2] if ms else None, "capture_ms_max": ms[-1] if ms else None}
+    shots = [r for r in rows if "file" in r]
+    ms = sorted(r["capture_ms"] for r in shots)
+    return {"frames": len(shots), "errors": sum(1 for r in rows if "error" in r),
+            "capture_ms_median": ms[len(ms) // 2] if ms else None, "capture_ms_max": ms[-1] if ms else None,
+            "done": any("done" in r for r in rows),
+            "end_gap_s": round(wall_s - (shots[-1]["t"] - t0), 2) if shots else None}
+
+
+MAX_END_GAP_S = 2.0
 
 
 def record(args):
@@ -236,7 +258,7 @@ def record(args):
                     run = run_claude_timed(RB, ARMS_MOD, arm_, task_, attempt_id, model_, on_start=rec.start)
                 finally:
                     rec.stop()
-                state["run"] = run
+                state["run"], state["clean"] = run, rec.clean
                 return run
 
             RB.run_claude = patched
@@ -247,7 +269,8 @@ def record(args):
             (arm_dir / "row.json").write_text(json.dumps(row, indent=1))
             (arm_dir / "meta.json").write_text(json.dumps({"t0": run["wall0"], "model": model}))
             summary["arms"][arm] = {k: row.get(k) for k in ("passed", "wall_s", "cost", "turns", "attempt_id")}
-            summary["arms"][arm]["recorder"] = recorder_stats(arm_dir / "frames.jsonl")
+            summary["arms"][arm]["recorder"] = {**recorder_stats(arm_dir / "frames.jsonl", run["wall0"], row["wall_s"]),
+                                                "exited_cleanly": state["clean"]}
             print(json.dumps({"arm": arm, **summary["arms"][arm]}), flush=True)
     finally:
         RB.run_claude = orig
@@ -348,6 +371,19 @@ def review(args):
     print(f"{len(tiles)} frames in {out}")
 
 
+def recorder_problem(stats):
+    if stats.get("errors", 1):
+        return "the recorder stalled (failed captures)"
+    if not stats.get("frames"):
+        return "the recorder captured no frames"
+    if not (stats.get("done") and stats.get("exited_cleanly")):
+        return "the recorder did not finish cleanly"
+    gap = stats.get("end_gap_s")
+    if gap is None or gap > MAX_END_GAP_S:
+        return f"the last frame is {gap} s before the end of the run"
+    return None
+
+
 def pick_median(recs):
     """[(path, recording.json)] -> the pair whose left-hand (agent alone) time is the median (the lower middle for an
     even count). Every pair counts, so a failed attempt is an error rather than quietly dropped from the pick."""
@@ -355,10 +391,12 @@ def pick_median(recs):
         failed = [arm for arm, v in summary["arms"].items() if not v.get("passed")]
         if failed:
             raise ValueError(f"{Path(r).name}: {', '.join(failed)} did not pass verification; record a fresh set")
-        # A capture that errored (usually a timeout) means the recorder may have slowed the run it was filming.
-        stalled = [arm for arm, v in summary["arms"].items() if (v.get("recorder") or {}).get("errors", 1)]
-        if stalled:
-            raise ValueError(f"{Path(r).name}: the recorder stalled during {', '.join(stalled)}; record a fresh set")
+        # A failed capture (usually a timeout) means the recorder may have slowed the run it was filming; no frames,
+        # no done marker, an unclean exit, or frames that stop early mean the GIF would not show the whole run.
+        for arm, v in summary["arms"].items():
+            problem = recorder_problem(v.get("recorder") or {})
+            if problem:
+                raise ValueError(f"{Path(r).name}: {arm}: {problem}; record a fresh set")
     ordered = sorted(recs, key=lambda rs: rs[1]["arms"]["B"]["wall_s"])
     return ordered[(len(ordered) - 1) // 2]
 
@@ -401,7 +439,7 @@ def render(args):
             d.text((x, y + 25), sub, fill=MUTED, font=font["small"])
             wall = a["row"]["wall_s"]
             done = t >= wall
-            frame, url = a["image_at"](min(t, wall))
+            frame, url = a["image_at"](float("inf") if done else t)  # done: the final capture, as the run left it
             img.paste(frame, (x, y + HEAD))
             if url.startswith("about:blank") or not url:
                 d.rectangle((x, y + HEAD, x + PANE_W - 1, y + HEAD + frame.height - 1), fill=(38, 41, 48))
@@ -430,7 +468,7 @@ def render(args):
     out.parent.mkdir(parents=True, exist_ok=True)
     palette = tmp / "palette.png"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-framerate", str(fps), "-i", str(tmp / "%05d.png"),
-                    "-vf", "palettegen=max_colors=128:stats_mode=diff", str(palette)], check=True)
+                    "-vf", "palettegen=max_colors=256:stats_mode=full", str(palette)], check=True)
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-framerate", str(fps), "-i", str(tmp / "%05d.png"),
                     "-i", str(palette), "-lavfi", "paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle",
                     "-loop", "0", str(out)], check=True)
