@@ -3,15 +3,21 @@
 Left: arm B (Claude Code drives browser-harness directly). Right: arm A-fast (Claude Code calls fast_run). Both are
 real benchmark attempts (bench/run_bench.py's `attempt`, so the same prompt, code-only verification and list-price
 costing as docs/benchmark.md). While each runs, a separate harness process screenshots the benchmark's own tabs
-(the orchestrator's fresh tab, or the tab jev-browse opened), never the browser window: no tab strip, bookmarks or
-other tabs. Page content still goes through `render`'s review: look at the contact sheet before publishing.
+(the orchestrator's fresh tab, the tab the agent's new_tab() switched to, or the tab jev-browse opened), never the
+browser window: no tab strip, bookmarks or other tabs. Page content can still show account details (Google's header
+avatar is cropped off; a dropdown of recent searches is not), so review every frame before publishing.
 
-  # 1. record (live: two Claude Code attempts at list price, TypeSafe requests, a real Chrome; see
-  #    docs/benchmarking.md for the `jevbench` daemon it needs). Output goes to gitignored bench/results/raw/demo/.
-  PYTHONPATH=. python3 scripts/make_demo_gif.py record --task wiki
+  # 1. record, three times (live: two Claude Code attempts at list price per pair, TypeSafe requests, a real
+  #    Chrome; see docs/benchmarking.md for the `jevbench` daemon). Output: gitignored bench/results/raw/demo/.
+  PYTHONPATH=. python3 scripts/make_demo_gif.py record --task flights
 
-  # 2. render (offline; needs ffmpeg). Given several recordings, it uses the pair whose left-hand time is the
-  #    median (the published GIF: three pairs). Refuses if any attempt failed verification.
+  # 2. review each frame of the pair render will use (the median; a first render prints which), cropped as the GIF
+  #    crops it; mask anything personal in
+  #    <recording>/redact.json: {"B": {"00041.jpg": [[x, y, w, h]]}} in viewport CSS px.
+  uv run --with pillow python3 scripts/make_demo_gif.py review bench/results/raw/demo/<stamp> --out /tmp/review
+
+  # 3. render (offline; needs ffmpeg). With several recordings it uses the pair whose left-hand time is the median,
+  #    and refuses if any attempt failed verification or the recorder stalled (it may have slowed that run).
   uv run --with pillow python3 scripts/make_demo_gif.py render bench/results/raw/demo/<stamp-1> <stamp-2> <stamp-3> \
       --gif docs/media/demo.gif --contact-sheet /tmp/demo-sheet.png
 """
@@ -38,11 +44,17 @@ TASK_TITLES = {"wiki": "Open a Wikipedia article from the Main Page",
 URL_PARAMS = {"flights": "&gl=US&curr=USD"}
 # CSS px cut from the top of every frame. Google's header carries the signed-in account's avatar, so it never shows.
 CROP_TOP = {"flights": 72}
-CAPTURE_SCALE = 0.5  # screenshots at half the viewport's CSS size
-FRAME_PERIOD = 0.2   # at most 5 captures per second
+# (width, height) in CSS px, centred: Flights' content is about 1,000 px wide, Wikipedia's about 1,500.
+CROP = {"flights": (1150, 700)}
+# Light enough not to slow the page under test: at most 2 captures a second, 40% size, and a capture that took d
+# seconds is followed by at least 3d of rest. Any capture error marks the recording unusable (see `render`).
+CAPTURE_SCALE = 0.4
+FRAME_PERIOD = 0.5
 
 # Runs inside `browser-harness` on the jevbench daemon. Captures whichever tab the attempt is using: the newest tab
-# jev-browse (or its new_tab recorder) registered since the recording began, else the orchestrator's fresh tab.
+# jev-browse registered since the recording began, else the daemon's current tab (the orchestrator's fresh tab, or
+# the tab the agent's own new_tab() switched to). Only jevbench clients move that tab, so a tab the user opens is
+# never captured. The recorder never switches tabs itself.
 RECORDER = r'''
 import base64, json, time
 from pathlib import Path
@@ -55,7 +67,7 @@ while not stop.exists():
     tick = time.time()
     try:
         pages = {t["targetId"]: t for t in cdp("Target.getTargets")["targetInfos"] if t.get("type") == "page"}
-        tid, newest = prep, -1.0
+        tid, newest = current_tab()["targetId"] or prep, -1.0
         for reg in REGS:
             try:
                 entries = json.loads(Path(reg).read_text()).get("targets", {})
@@ -72,19 +84,23 @@ while not stop.exists():
             sessions[tid] = cdp("Target.attachToTarget", targetId=tid, flatten=True)["sessionId"]
         sid = sessions[tid]
         vp = cdp("Page.getLayoutMetrics", session_id=sid)["cssVisualViewport"]
-        shot = cdp("Page.captureScreenshot", session_id=sid, format="jpeg", quality=80,
+        c0 = time.time()
+        shot = cdp("Page.captureScreenshot", session_id=sid, format="jpeg", quality=80, optimizeForSpeed=True,
                    clip={"x": vp["pageX"], "y": vp["pageY"], "width": vp["clientWidth"],
                          "height": vp["clientHeight"], "scale": SCALE})
+        cost = time.time() - c0
         name = f"{n:05d}.jpg"
         (frames / name).write_bytes(base64.b64decode(shot["data"]))
-        log.write(json.dumps({"t": tick, "file": name, "url": pages[tid].get("url", ""),
-                              "css_width": vp["clientWidth"], "css_height": vp["clientHeight"]}) + "\n")
+        log.write(json.dumps({"t": tick, "file": name, "target": tid, "url": pages[tid].get("url", ""),
+                              "capture_ms": round(cost * 1000), "css_width": vp["clientWidth"],
+                              "css_height": vp["clientHeight"]}) + "\n")
         log.flush()
         n += 1
     except Exception as exc:
+        cost = 1.0
         log.write(json.dumps({"t": tick, "error": str(exc)[:200]}) + "\n")
         log.flush()
-    time.sleep(max(0.0, PERIOD - (time.time() - tick)))
+    time.sleep(max(PERIOD - (time.time() - tick), 3 * cost))
 for sid in sessions.values():
     try:
         cdp("Target.detachFromTarget", sessionId=sid)
@@ -185,6 +201,13 @@ def stream_timeline(line_times):
     return turns, model
 
 
+def recorder_stats(frames_jsonl):
+    rows = [json.loads(line) for line in Path(frames_jsonl).read_text().splitlines()]
+    ms = sorted(r["capture_ms"] for r in rows if "capture_ms" in r)
+    return {"frames": len(ms), "errors": sum(1 for r in rows if "error" in r),
+            "capture_ms_median": ms[len(ms) // 2] if ms else None, "capture_ms_max": ms[-1] if ms else None}
+
+
 def record(args):
     from bench import arms as ARMS_MOD
     from bench import run_bench as RB
@@ -224,6 +247,7 @@ def record(args):
             (arm_dir / "row.json").write_text(json.dumps(row, indent=1))
             (arm_dir / "meta.json").write_text(json.dumps({"t0": run["wall0"], "model": model}))
             summary["arms"][arm] = {k: row.get(k) for k in ("passed", "wall_s", "cost", "turns", "attempt_id")}
+            summary["arms"][arm]["recorder"] = recorder_stats(arm_dir / "frames.jsonl")
             print(json.dumps({"arm": arm, **summary["arms"][arm]}), flush=True)
     finally:
         RB.run_claude = orig
@@ -244,11 +268,11 @@ def speed_for(longest, budget=32.0):
 
 
 def fmt_speed(s):
-    return f"{s:g}×"
+    return f"{s:g}x"  # the default font has no multiplication sign
 
 
 def load_arm(rec_dir, arm, crop_w, crop_h, crop_top=0):
-    from PIL import Image
+    from PIL import Image, ImageDraw, ImageFont
 
     d = Path(rec_dir) / arm
     row = json.loads((d / "row.json").read_text())
@@ -260,6 +284,8 @@ def load_arm(rec_dir, arm, crop_w, crop_h, crop_top=0):
         if "file" in f:
             frames.append((f["t"] - meta["t0"], d / "frames" / f["file"], f))
     pane_h = round(PANE_W * crop_h / crop_w)
+    redact_file = Path(rec_dir) / "redact.json"
+    redactions = json.loads(redact_file.read_text()).get(arm, {}) if redact_file.exists() else {}
     cache = {}
 
     def image_at(t):
@@ -275,6 +301,11 @@ def load_arm(rec_dir, arm, crop_w, crop_h, crop_top=0):
         if path not in cache:
             img = Image.open(path).convert("RGB")
             s = img.width / info["css_width"]  # pixels per CSS px
+            draw = ImageDraw.Draw(img)
+            for x, y, w, h in redactions.get(path.name, ()):  # viewport CSS px
+                draw.rectangle([round(v * s) for v in (x, y, x + w, y + h)], fill=(60, 64, 72))
+                draw.text((round((x + w / 2) * s), round((y + h / 2) * s)), "redacted", fill=(200, 204, 212),
+                          font=ImageFont.load_default(size=round(28 * s)), anchor="mm")
             cw, ch = min(crop_w, info["css_width"]), min(crop_h, info["css_height"] - crop_top)
             x0 = (info["css_width"] - cw) / 2
             box = tuple(round(v * s) for v in (x0, crop_top, x0 + cw, crop_top + ch))
@@ -284,6 +315,39 @@ def load_arm(rec_dir, arm, crop_w, crop_h, crop_top=0):
     return {"row": row, "meta": meta, "turns": turns, "frames": frames, "image_at": image_at, "pane_h": pane_h}
 
 
+def crop_for(task_key, args):
+    crop_w, crop_h = CROP.get(task_key, (1500, 900))
+    top = CROP_TOP.get(task_key, 0) if args.crop_top is None else args.crop_top
+    return args.crop_width or crop_w, args.crop_height or crop_h, top
+
+
+def review(args):
+    """Tile every captured frame exactly as `render` crops and redacts it, labelled with its arm and file name, so
+    each one can be checked for account details before publishing. Add boxes to <recording>/redact.json as needed."""
+    from PIL import Image, ImageDraw
+
+    rec = Path(args.recording)
+    summary = json.loads((rec / "recording.json").read_text())
+    tiles = []
+    for arm, _, _ in ARMS:
+        a = load_arm(rec, arm, *crop_for(summary["task"], args))
+        for t, path, _info in a["frames"]:
+            img = a["image_at"](t)[0].copy()
+            ImageDraw.Draw(img).text((4, 4), f"{arm} {path.name} t={t:.1f}", fill=(255, 60, 60))
+            tiles.append(img)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    per = 12
+    for i in range(0, len(tiles), per):
+        chunk = tiles[i:i + per]
+        w, h = PANE_W, max(tile.height for tile in chunk)
+        sheet = Image.new("RGB", (w * 3, h * 4), "white")
+        for j, tile in enumerate(chunk):
+            sheet.paste(tile, ((j % 3) * w, (j // 3) * h))
+        sheet.save(out / f"review-{i // per:02d}.png")
+    print(f"{len(tiles)} frames in {out}")
+
+
 def pick_median(recs):
     """[(path, recording.json)] -> the pair whose left-hand (agent alone) time is the median (the lower middle for an
     even count). Every pair counts, so a failed attempt is an error rather than quietly dropped from the pick."""
@@ -291,6 +355,10 @@ def pick_median(recs):
         failed = [arm for arm, v in summary["arms"].items() if not v.get("passed")]
         if failed:
             raise ValueError(f"{Path(r).name}: {', '.join(failed)} did not pass verification; record a fresh set")
+        # A capture that errored (usually a timeout) means the recorder may have slowed the run it was filming.
+        stalled = [arm for arm, v in summary["arms"].items() if (v.get("recorder") or {}).get("errors", 1)]
+        if stalled:
+            raise ValueError(f"{Path(r).name}: the recorder stalled during {', '.join(stalled)}; record a fresh set")
     ordered = sorted(recs, key=lambda rs: rs[1]["arms"]["B"]["wall_s"])
     return ordered[(len(ordered) - 1) // 2]
 
@@ -304,8 +372,7 @@ def render(args):
     except ValueError as exc:
         sys.exit(str(exc))
     print(f"using {rec.name} (median left-hand time of {len(recs)} recorded pairs)")
-    crop_top = CROP_TOP.get(summary["task"], 0) if args.crop_top is None else args.crop_top
-    arms = {arm: load_arm(rec, arm, args.crop_width, args.crop_height, crop_top) for arm, _, _ in ARMS}
+    arms = {arm: load_arm(rec, arm, *crop_for(summary["task"], args)) for arm, _, _ in ARMS}
     longest = max(a["row"]["wall_s"] for a in arms.values())
     speed = args.speed or speed_for(longest)
     fps, hold = args.fps, args.hold
@@ -394,11 +461,16 @@ def main(argv=None):
     g.add_argument("--speed", type=float, help="playback speed for both panes (default: fit in about 32 s)")
     g.add_argument("--fps", type=int, default=8)
     g.add_argument("--hold", type=float, default=4.0, help="seconds to hold the final frame")
-    g.add_argument("--crop-width", type=int, default=1500, help="CSS px, centred; page top is always kept")
-    g.add_argument("--crop-height", type=int, default=900)
-    g.add_argument("--crop-top", type=int, help="CSS px cut from the top (default: per task; flights drops the header)")
+    v = sub.add_parser("review", help="tile every frame of one recording, cropped and redacted, for a privacy check")
+    v.add_argument("recording")
+    v.add_argument("--out", required=True, help="directory for the review sheets (keep it outside the repo)")
+    for p in (g, v):
+        p.add_argument("--crop-width", type=int, help="CSS px, centred (default: per task)")
+        p.add_argument("--crop-height", type=int, help="CSS px from --crop-top down (default: per task)")
+        p.add_argument("--crop-top", type=int, help="CSS px cut from the top (default: per task; flights drops the "
+                                                    "header)")
     args = ap.parse_args(argv)
-    (record if args.cmd == "record" else render)(args)
+    {"record": record, "render": render, "review": review}[args.cmd](args)
 
 
 if __name__ == "__main__":
