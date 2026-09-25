@@ -15,43 +15,56 @@ Check each. If one is missing, fix it or tell the user what is needed, then cont
 
 ```bash
 python3 --version            # needs 3.11+
-git --version
 browser-harness --version    # any output means it is installed
+uv --version                 # or: pipx --version (either installs the jev-browse command)
 ```
 
 - **browser-harness missing or not connected to Chrome:** follow its own setup first
   (https://github.com/browser-use/browser-harness/blob/main/install.md). It is ready when this prints page info:
   `browser-harness <<'PY'` / `print(page_info())` / `PY`.
 - **Chrome** must be running with remote debugging allowed (browser-harness's install covers this).
+- **Neither uv nor pipx:** **Ask** the user which to install (recommend uv: https://docs.astral.sh/uv/), or use
+  the git checkout in step 1.
 
-## 1. Get the code
+## 1. Get jev-browse
 
-Pick a stable location. The harness loads jev-browse from this checkout, so don't put it in a temp dir.
+Install the package as a tool. It has no runtime dependencies (standard library only):
 
 ```bash
-git clone https://github.com/danielnc/jev-browse ~/jev-browse
+uv tool install jev-browse           # or: pipx install jev-browse
+jev-browse --help
 ```
 
-If `~/jev-browse` already exists and is a jev-browse checkout, update it instead: `git -C ~/jev-browse pull --ff-only`.
-jev-browse has no runtime dependencies (standard library only), so there is nothing to `pip install`.
+If it is already installed, upgrade it instead: `uv tool upgrade jev-browse` (or `pipx upgrade jev-browse`). If
+`jev-browse` is not found afterwards, run `uv tool update-shell` (or `pipx ensurepath`) and open a new shell.
+
+**From source instead** (to hack on it, or without uv/pipx): clone it to a stable location, since the harness loads
+jev-browse from the checkout, then run every `jev-browse <command>` below as `python3 -m jev_browse <command>` from
+the checkout, or as `~/jev-browse/scripts/jev-browse <command>` from anywhere:
+
+```bash
+git clone https://github.com/danielnc/jev-browse ~/jev-browse     # or, if it exists: git -C ~/jev-browse pull --ff-only
+```
 
 ## 2. Install the helpers and the skill
 
 ```bash
-python3 -m jev_browse install        # run from the checkout (or: ~/jev-browse/bin/jev-browse install)
+jev-browse install
 ```
 
 This does two things:
 
 1. It appends a marked block to the harness's `agent-workspace/agent_helpers.py`, so every browser-harness script
    gets `fast_run`, `jev_open`, `jev_adopt`, `jev_find`, `jev_click`, `jev_check`, `jev_close`. The user's own code
-   in that file is left untouched, and `python3 -m jev_browse uninstall` removes only the block. The block also
+   in that file is left untouched, and `jev-browse uninstall` removes only the block. The block also
    wraps the harness's `new_tab()` with a transparent recorder, so `jev_adopt` can take over tabs the agent opened.
    If jev-browse ever fails to import, the helpers become stubs that raise a clear error, and every other harness
    script keeps working.
 2. It symlinks the skill (`skill/`) as `jev-browse` into each installed agent's skills dir: `~/.claude/skills/`
    and/or `${CODEX_HOME:-~/.codex}/skills/`. Use `--agent claude|codex|all` to choose. The installer refuses to
-   overwrite a different existing `jev-browse` skill; if it refuses, tell the user and stop.
+   overwrite a different existing `jev-browse` skill; if it refuses, tell the user and stop. If the user installed
+   the jev-browse **Claude Code plugin**, it already provides the skill: use `jev-browse install --no-skill`, or
+   `--agent codex` when Codex is installed too.
 
 It also warns if browser-harness telemetry is enabled. **Ask** the user whether to opt out
 (`browser-harness telemetry disable`). Telemetry sends script text and helper-call arguments, including goals and
@@ -93,13 +106,13 @@ fall back to the `claude` CLI, which sends the page text to Anthropic. That is t
 ```bash
 printf 'JEV_BROWSE_TEXT_BACKEND=ollama\nJEV_BROWSE_OLLAMA_URL=%s\n' "http://127.0.0.1:11434" >> "$ENV"
 mkdir -p ~/.config/jev-browse
-python3 -m jev_browse config --example > ~/.config/jev-browse/config.toml   # then uncomment what you change
+jev-browse config --example > ~/.config/jev-browse/config.toml   # then uncomment what you change
 ```
 
 ## 5. Verify
 
 ```bash
-python3 -m jev_browse doctor
+jev-browse doctor
 ```
 
 Fix every `FAIL` line (each one says how), then run it again until it ends with `All required checks passed.` It
@@ -131,18 +144,19 @@ Check for the heading `Browser tasks: jev-browse fast path` first.
 ## Uninstall
 
 ```bash
-python3 -m jev_browse uninstall     # removes the agent_helpers block and the skill links; nothing else
+jev-browse uninstall                # removes the agent_helpers block and the skill links; nothing else
+uv tool uninstall jev-browse        # or: pipx uninstall jev-browse (or delete the checkout)
 ```
 
-Then delete the checkout, and remove the `TYPESAFE_API_KEY` / `JEV_BROWSE_*` lines from the harness `.env` and the
+Then remove the `TYPESAFE_API_KEY` / `JEV_BROWSE_*` lines from the harness `.env` and the
 pointer from the agent instructions if the user wants.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| `fast_run` is not defined in a harness script | `python3 -m jev_browse doctor` → re-run `install`; check `BH_AGENT_WORKSPACE` if the harness uses a custom workspace |
-| `RuntimeError: jev-browse failed to import: …` | The checkout moved or is broken: re-run `install` from its new location |
+| `fast_run` is not defined in a harness script | `jev-browse doctor` → re-run `install`; check `BH_AGENT_WORKSPACE` if the harness uses a custom workspace |
+| `RuntimeError: jev-browse failed to import: …` | The package was reinstalled under another Python, or the checkout moved: re-run `jev-browse install` |
 | `service_error` / TypeSafe 401 | The key is wrong or missing in the harness `.env` |
 | `text_value_unavailable` on every miss | The text backend is `none`, or it failed (see the trace's `llm` entry); run `doctor` |
 | The skill never triggers | Add the global pointer (step 6) |

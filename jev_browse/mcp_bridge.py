@@ -21,7 +21,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import config
+from . import config, install
 from . import run as runmod
 from .results import CALLER_ACTION, Reason
 
@@ -388,7 +388,7 @@ def format_error(d):
     err, detail = d.get("error"), d.get("detail") or ""
     if err == "not_installed":
         return ("jev-browse is not installed in browser-harness (its helpers are not loaded). Run "
-                "`python3 -m jev_browse install` from the jev-browse checkout, then the doctor tool.")
+                f"`{install.CLI} install`, then the doctor tool.")
     if err == "timeout":
         return f"timed out: {detail}. Increase JEV_BROWSE_MCP_WAIT_S if your MCP client allows longer tool calls."
     if err == "harness":

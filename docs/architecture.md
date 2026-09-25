@@ -382,24 +382,25 @@ missing key hands back `service_error` before any browser work. Request logs kee
 `.env`) > TOML config file > default. Secrets are environment-only. An invalid value keeps its default and is
 reported by `doctor`. See [configuration.md](configuration.md).
 
-**Install.** `python3 -m jev_browse install`:
+**Install.** `jev-browse install` (`python3 -m jev_browse install` from a checkout):
 
 1. Appends a marked block to the harness's `agent_helpers.py`, found as the harness finds it
    (`BH_AGENT_WORKSPACE`, then `BH_HOME` / `BROWSER_HARNESS_HOME`, then `XDG_CONFIG_HOME`, then
-   `~/.config/browser-harness`). The block appends the checkout to `sys.path` (never at the front), imports the
+   `~/.config/browser-harness`). The block appends the directory that holds `jev_browse/` (the checkout, or the tool venv's `site-packages` for a
+   package install) to `sys.path` (never at the front), imports the
    seven helpers, and wraps `new_tab` with the recorder, the only harness name it replaces. Its internals are
    underscore-prefixed because the harness copies public names into every script. If the import fails, it
    defines stubs that raise `jev-browse failed to import: ...`, so a broken checkout never breaks other
    scripts. With `JEV_BROWSE_DISABLE=1` the stubs raise `jev-browse disabled` and `new_tab` is untouched.
    Re-running is a no-op; `--uninstall` removes only the block.
-2. Symlinks `skill/` into `~/.claude/skills` and, when Codex is installed, `${CODEX_HOME:-~/.codex}/skills`. It
+2. Symlinks the skill (`skill/`, which the wheel bundles as `jev_browse/skill`) into `~/.claude/skills` and, when Codex is installed, `${CODEX_HOME:-~/.codex}/skills`. It
    refuses to overwrite a path that is not its own link.
 3. Warns if browser-harness telemetry is on.
 
-**Doctor.** `python3 -m jev_browse doctor` checks Python, config problems, the TypeSafe key (one small live
+**Doctor.** `jev-browse doctor` checks Python, config problems, the TypeSafe key (one small live
 request unless `--offline`), harness health and telemetry, the block and skill links, and the text backend (the
 CLI's presence, or for a server backend a fresh canary unless `--no-canary`). Keys print only as set/unset and
-private URLs as `<set>`. It exits 1 on any failed check. `python3 -m jev_browse config` lists every setting
+private URLs as `<set>`. It exits 1 on any failed check. `jev-browse config` lists every setting
 with its value and source.
 
 **MCP server.** `jev-browse mcp` (with the `mcp` extra) serves the helpers over MCP stdio. Each tool call pipes a

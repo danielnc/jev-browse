@@ -36,9 +36,9 @@ def config_main(argv, out=print):
     return 0
 
 
-MCP_HINT = ("jev-browse mcp needs the MCP SDK (the `mcp` extra). From a clone: "
-            "`uv run --directory <clone> --extra mcp python -m jev_browse mcp`; from a package: "
-            "`pip install 'jev-browse[mcp]'`. See docs/mcp.md.")
+MCP_HINT = ("jev-browse mcp needs the MCP SDK (the `mcp` extra): `uv tool install --reinstall \"jev-browse[mcp]\"` "
+            "(or `pipx install --force \"jev-browse[mcp]\"`); from a clone: "
+            "`uv run --directory <clone> --extra mcp jev-browse mcp`. See docs/mcp.md.")
 
 
 def mcp_main(argv):

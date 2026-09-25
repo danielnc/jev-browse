@@ -125,12 +125,12 @@ def test_module_entry_point_dispatch(capsys):
     assert main(["nope"]) == 2
 
 
-def test_bin_launcher_runs_from_any_directory(tmp_path):
+def test_checkout_launcher_runs_from_any_directory(tmp_path):
     import subprocess
     import sys
     from pathlib import Path
 
-    launcher = Path(install.CHECKOUT) / "bin" / "jev-browse"
+    launcher = Path(install.CHECKOUT) / "scripts" / "jev-browse"
     p = subprocess.run([sys.executable, str(launcher), "config", "--example"], cwd=tmp_path, capture_output=True,
                        text=True, timeout=30)
     assert p.returncode == 0 and "[text]" in p.stdout

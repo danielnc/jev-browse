@@ -261,7 +261,9 @@ def test_helper_exception_becomes_tool_error(harness, monkeypatch):
 def test_not_installed_and_harness_failures_are_tool_errors(harness, monkeypatch):
     monkeypatch.setenv("FAKE_HARNESS_MODE", "not_installed")
     text, is_error = call("jev_open", {"url": "https://example.com"})
-    assert is_error and "python3 -m jev_browse install" in text
+    from jev_browse import install
+
+    assert is_error and f"`{install.CLI} install`, then the doctor tool" in text
     monkeypatch.setenv("FAKE_HARNESS_MODE", "harness_error")
     text, is_error = call("fast_run", {"url": "https://example.com", "goal": "g"})
     assert is_error and "remote debugging is not enabled" in text
@@ -364,11 +366,12 @@ def test_mcp_subcommand_explains_the_missing_extra(monkeypatch, capsys):
         monkeypatch.setitem(sys.modules, name, None)
     monkeypatch.delitem(sys.modules, "jev_browse.mcp_server")
     assert __main__.main(["mcp"]) == 1
-    assert "--extra mcp" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert 'uv tool install --reinstall "jev-browse[mcp]"' in err and "--extra mcp" in err
 
 
 def test_stdio_entry_point_round_trip(harness, tmp_path):
-    """`python -m jev_browse mcp` over real stdio: the handshake, tools/list, and one tool call through the fake
+    """`jev-browse mcp` (as `python -m jev_browse mcp`) over real stdio: the handshake, tools/list, and one tool call through the fake
     harness. Any stray print to stdout would corrupt the JSON-RPC stream and fail this."""
     from mcp import StdioServerParameters
 

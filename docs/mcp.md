@@ -12,28 +12,37 @@ safety, config, and text backends, and the same hand-back reasons. The server it
 ## Requirements
 
 Everything in the [Quickstart](../README.md#quickstart) has to work first: Chrome, browser-harness connected to it,
-`python3 -m jev_browse install`, and `TYPESAFE_API_KEY` in the harness `.env`. `python3 -m jev_browse doctor` should
-pass. The server also needs [uv](https://docs.astral.sh/uv/), which installs the MCP SDK (the `mcp` extra) on first
-start. The browser-harness runtime itself stays standard-library only.
+`jev-browse install`, and `TYPESAFE_API_KEY` in the harness `.env`. `jev-browse doctor` should pass.
 
-Before the first MCP call, run one browser-harness command in a terminal (for example `python3 -m jev_browse
-doctor`) so that Chrome's "Allow remote debugging" prompt is out of the way. A tool call that waits on that prompt
-times out.
+The server needs the MCP SDK, which is the optional `mcp` extra. The browser-harness runtime itself stays
+standard-library only. Install the `jev-browse` command with the extra:
+
+```bash
+uv tool install "jev-browse[mcp]"                 # or: pipx install "jev-browse[mcp]"
+```
+
+If `jev-browse` is already installed without the extra, add `--reinstall` (pipx: `--force`). Installing the same
+package that `jev-browse install` hooked into browser-harness keeps the server and the helpers on one version.
+
+Before the first MCP call, run one browser-harness command in a terminal (for example `jev-browse doctor`) so that
+Chrome's "Allow remote debugging" prompt is out of the way. A tool call that waits on that prompt times out.
 
 ## Launch command
 
-From a clone of this repository (replace `/path/to/jev-browse`):
-
 ```bash
-uv run --directory /path/to/jev-browse --extra mcp python -m jev_browse mcp
+jev-browse mcp
 ```
 
-With a package install that includes the extra (`pip install 'jev-browse[mcp]'`), the command is `jev-browse mcp`.
+From a clone of this repository instead (replace `/path/to/jev-browse`):
 
-GUI apps such as Claude Desktop often start with a short `PATH`. If the client cannot find `uv`, use its absolute
-path (`which uv`). If the server cannot find `browser-harness`, set `JEV_BROWSE_HARNESS_COMMAND` to its absolute path
-(`which browser-harness`) in the server's `env`. The server also looks in `~/.local/bin`, where `uv tool install`
-puts it.
+```bash
+uv run --directory /path/to/jev-browse --extra mcp jev-browse mcp
+```
+
+GUI apps such as Claude Desktop often start with a short `PATH`. If the client cannot find `jev-browse`, use its
+absolute path (`which jev-browse`; `uv tool install` puts it in `~/.local/bin`). If the server cannot find
+`browser-harness`, set `JEV_BROWSE_HARNESS_COMMAND` to its absolute path (`which browser-harness`) in the server's
+`env`. The server also looks in `~/.local/bin` for it.
 
 ## Client configuration
 
@@ -46,8 +55,8 @@ on Windows. Restart Claude Desktop afterwards.
 {
   "mcpServers": {
     "jev-browse": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/jev-browse", "--extra", "mcp", "python", "-m", "jev_browse", "mcp"],
+      "command": "/absolute/path/to/jev-browse",
+      "args": ["mcp"],
       "env": {
         "JEV_BROWSE_HARNESS_COMMAND": "/absolute/path/to/browser-harness"
       }
@@ -56,8 +65,8 @@ on Windows. Restart Claude Desktop afterwards.
 }
 ```
 
-The `env` block is optional. You need it only when `browser-harness` is not on the app's `PATH` or in
-`~/.local/bin`.
+Use the absolute path from `which jev-browse`: Claude Desktop does not start servers with your shell's `PATH`. The
+`env` block is optional. You need it only when `browser-harness` is not on the app's `PATH` or in `~/.local/bin`.
 
 ### Cursor
 
@@ -67,8 +76,8 @@ The `env` block is optional. You need it only when `browser-harness` is not on t
 {
   "mcpServers": {
     "jev-browse": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/jev-browse", "--extra", "mcp", "python", "-m", "jev_browse", "mcp"]
+      "command": "jev-browse",
+      "args": ["mcp"]
     }
   }
 }
@@ -80,8 +89,8 @@ The `env` block is optional. You need it only when `browser-harness` is not on t
 
 ```toml
 [mcp_servers.jev-browse]
-command = "uv"
-args = ["run", "--directory", "/path/to/jev-browse", "--extra", "mcp", "python", "-m", "jev_browse", "mcp"]
+command = "jev-browse"
+args = ["mcp"]
 env = { JEV_BROWSE_MCP_WAIT_S = "150" }
 ```
 
@@ -90,8 +99,10 @@ in a single call instead of returning `running`.
 
 ### Other clients
 
-Claude Code: `claude mcp add jev-browse -- uv run --directory /path/to/jev-browse --extra mcp python -m jev_browse
-mcp`. Windsurf and other clients take the same command and arguments in their own MCP config file.
+Claude Code: `claude mcp add jev-browse -- jev-browse mcp` (Claude Code can also call the helpers from
+browser-harness scripts directly; see the skill). Windsurf and other clients take the same command and arguments in
+their own MCP config file. With a clone, the command is `uv` and the arguments are `run --directory
+/path/to/jev-browse --extra mcp jev-browse mcp`.
 
 These snippets follow each client's documented config format. The author has not tried every client, and MCP use
 has not been benchmarked. The numbers in [benchmark.md](benchmark.md) were measured with browser-harness scripts.
@@ -169,11 +180,13 @@ described in [configuration.md](configuration.md), because it is read inside the
 
 ## Troubleshooting
 
-- Run the `doctor` tool (or `python3 -m jev_browse doctor` in a terminal). It checks the key, browser-harness, the
+- Run the `doctor` tool (or `jev-browse doctor` in a terminal). It checks the key, browser-harness, the
   helpers block, and the text backend, and it prints the harness command and wait the server uses.
-- `jev-browse is not installed in browser-harness`: run `python3 -m jev_browse install` from the clone.
+- `jev-browse is not installed in browser-harness`: run `jev-browse install` (from a clone: `python3 -m jev_browse
+  install`).
 - `browser-harness failed. ... remote debugging ...`: follow the harness's message. Usually Chrome is waiting for
   you to allow remote debugging; see [install.md](../install.md).
-- `jev-browse mcp needs the MCP SDK`: start the server with `--extra mcp` (or install `jev-browse[mcp]`).
+- `jev-browse mcp needs the MCP SDK`: `uv tool install --reinstall "jev-browse[mcp]"`, or add `--extra mcp` when
+  you run from a clone.
 - Every call returns `running`: raise `JEV_BROWSE_MCP_WAIT_S` if your client allows longer tool calls, or keep
   calling `fast_run_status`.
