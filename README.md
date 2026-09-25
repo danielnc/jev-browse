@@ -1,5 +1,8 @@
 # jev-browse
 
+[![CI](https://github.com/danielnc/jev-browse/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/danielnc/jev-browse/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/danielnc/jev-browse/badge)](https://scorecard.dev/viewer/?uri=github.com/danielnc/jev-browse)
+
 **Fast, typed browser sub-tasks for coding agents.** jev-browse adds a few helpers to
 [browser-harness](https://github.com/browser-use/browser-harness) so that Claude Code or Codex can hand off a
 whole website sub-task in one call: "search Lisbon, set these two filters, open Casa Flora". Each step is decided by
