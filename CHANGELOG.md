@@ -6,6 +6,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- CI on pull requests and `main`: pytest on Python 3.11–3.14 (with the `mcp` extra), ruff, a wheel build and
+  clean-venv smoke test, and a full-history gitleaks scan, summarised by one `ci` check. Plus CodeQL, Dependabot
+  (uv and GitHub Actions), OpenSSF Scorecard, and a CodeRabbit review config.
 - PyPI packaging: `uv tool install jev-browse` (or `pipx install jev-browse`) gives a `jev-browse` command
   (`install`, `uninstall`, `doctor`, `config`, `mcp`). The wheel bundles the skill, and `jev-browse install` links it
   from the package.

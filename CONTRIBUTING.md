@@ -13,6 +13,10 @@ pre-commit install      # optional: the gitleaks hook blocks commits that contai
 
 `make check` needs no network, no TypeSafe key, and no browser: every external service is faked.
 
+CI (`.github/workflows/ci.yml`) runs the same checks on every pull request: pytest on Python 3.11 to 3.14, ruff,
+a build and clean-venv install of the wheel, and a gitleaks scan of the full history. Its `ci` job must pass.
+CodeQL and CodeRabbit also review pull requests.
+
 To try your changes in a real browser, install from your checkout (`python3 -m jev_browse install`) and run
 `python3 -m jev_browse doctor`. See `install.md`. To test the packaged install, `uv build` and install the wheel
 into a fresh venv. Releases are cut by the maintainer: see [docs/releasing.md](docs/releasing.md).
