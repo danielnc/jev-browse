@@ -73,6 +73,11 @@ yes.
 
 ## 3. The TypeSafe API key
 
+If the user runs a compatible custom SystemOne server, configure `jev.base_url`, `jev.model`, and authentication
+as described in [configuration.md](docs/configuration.md#custom-systemone-servers). Ask whether it requires a
+bearer token. With `jev.auth = "none"`, skip the API-key step; otherwise store only the selected server's key
+in the harness `.env`. Do not request a TypeSafe key for a custom server or forward one to it implicitly.
+
 **Ask** the user for their TypeSafe API key (from https://console.typesafe.ai/keys) unless `doctor` already reports it set. Store
 it in the harness agent-workspace `.env`, which the harness loads into every script. Replace an existing line
 rather than adding a duplicate. Keep the file private:
@@ -116,7 +121,8 @@ jev-browse doctor
 ```
 
 Fix every `FAIL` line (each one says how), then run it again until it ends with `All required checks passed.` It
-sends one tiny TypeSafe request, and for `ollama`/`openai` it runs the three-prompt canary. A failed canary means
+sends one tiny request to the configured SystemOne server (even with authentication disabled), and for
+`ollama`/`openai` it runs the three-prompt canary. A failed canary means
 the backend answers wrongly (for example a misconfigured GPU): try `ollama.num_gpu = 0`, another model, or another
 backend. Show the user the summary lines at the top of the output.
 

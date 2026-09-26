@@ -5,8 +5,8 @@
 > field labels, and page excerpt then go to Anthropic. Set `text.fallback = "none"` to keep them local: a failed
 > or unreachable backend then hands the miss back to your agent. See [backends.md](backends.md#fallback).
 
-jev-browse works with **one required setting**, `TYPESAFE_API_KEY`. Everything else has a default. This page lists
-every setting, where it can be set, and some common setups.
+By default, jev-browse requires `TYPESAFE_API_KEY`. You can instead use a compatible SystemOne server with
+its own bearer key or explicitly disable authentication. This page lists every setting and common setups.
 
 ## Where settings come from
 
@@ -24,8 +24,8 @@ Per-call arguments (`fast_run(..., timeout_s=120, text_backend="none")`) win ove
 Put **secrets only in the environment** (the harness `.env`, mode 600). The config file never supplies an API
 key: a key-like entry there is reported as an unknown setting and ignored.
 
-An invalid value (a word where a number belongs, an unknown backend name) never crashes a run. The setting keeps
-its default, and `jev-browse doctor` reports the problem.
+Most invalid values keep their defaults, and `jev-browse doctor` reports the problem. Invalid Jev endpoint or
+authentication settings stop the run before browser work; they never silently redirect requests to TypeSafe.
 
 Check what is active:
 
@@ -42,11 +42,52 @@ jev-browse config --example > ~/.config/jev-browse/config.toml   # a commented s
 
 | Variable | Meaning |
 |---|---|
-| `TYPESAFE_API_KEY` | TypeSafe API key (**required**). Keep it in the browser-harness agent-workspace `.env`. |
+| `TYPESAFE_API_KEY` | Bearer key for the default TypeSafe endpoint. Keep it in the browser-harness agent-workspace `.env`. |
+| `JEV_BROWSE_API_KEY` | Default bearer key for a custom SystemOne endpoint (rename it with `jev.api_key_env`). |
 | `JEV_BROWSE_CONFIG` | Path of the config file. |
 | `JEV_BROWSE_DISABLE` | `1` = the harness helpers are stubs that raise (jev-browse off, harness untouched). |
 | `JEV_BROWSE_OWNER` | Tab-ownership tag. Set one per parallel agent (default: the Claude Code session id; `mcp-<random>` per `jev-browse mcp` server). |
 | `JEV_BROWSE_OPENAI_API_KEY` | Default variable holding the `openai` backend's key (rename it with `openai.api_key_env`). |
+
+## Custom SystemOne servers
+
+The Jev decision endpoint is independent of the text backend. For an unauthenticated server:
+
+```toml
+[jev]
+base_url = "http://127.0.0.1:8080"
+model = "kev-latest"
+auth = "none"
+```
+
+For a remote server with bearer authentication:
+
+```toml
+[jev]
+base_url = "https://example.com/inference"
+model = "kev-latest"
+auth = "bearer"
+api_key_env = "KEV_API_KEY"
+```
+
+Store the token in `KEV_API_KEY` in the harness `.env`, never in TOML. If `api_key_env` is unset, the hosted
+TypeSafe endpoint uses `TYPESAFE_API_KEY`; every other endpoint uses `JEV_BROWSE_API_KEY`. Changing the URL alone
+never forwards an existing TypeSafe key to a custom server. `auth = "none"` omits the Authorization header
+even if a token is available. The selected token is also removed from text-backend CLI environments.
+
+The client appends `/v1/systemone` to the base URL (including any path prefix). Supply the base, not the full
+endpoint: the remote example calls `/inference/v1/systemone`. HTTP and HTTPS, explicit ports, and IPv6 are
+supported. Use HTTPS for remote servers: HTTP transmits page content and bearer tokens without encryption.
+URLs containing credentials, queries, or fragments are rejected. Redirects are not followed.
+
+The server must accept `state`, `model`, and `questions` and return a SystemOne `answers` mapping with the
+existing `choice`/`confidence`/`probabilities` or `noul` fields. An OpenAI chat-completions endpoint is not a
+drop-in replacement. Request deadlines, retries, and answer validation remain unchanged.
+
+`jev-browse doctor` checks the selected server, including a live request when authentication is disabled;
+`--offline` checks configuration only. Private base URLs are hidden in configuration listings and diagnostics,
+and custom-server error bodies are withheld because they may echo tokens or private URLs. Run/page content
+goes to your selected server; choosing `text_backend="none"` disables only the separate text backend.
 
 ## All settings
 
@@ -71,6 +112,9 @@ jev-browse config --example > ~/.config/jev-browse/config.toml   # a commented s
 | `canary.enabled` | `JEV_BROWSE_CANARY` | `true` | Known-answer check before trusting an ollama/openai backend. |
 | `canary.ttl_healthy_s` | `JEV_BROWSE_CANARY_TTL_S` | `600` | Seconds a passed canary is reused across processes. |
 | `canary.ttl_unhealthy_s` | `JEV_BROWSE_CANARY_TTL_UNHEALTHY_S` | `120` | Seconds a failed canary is reused across processes. |
+| `jev.base_url` | `JEV_BROWSE_JEV_BASE_URL` | `"https://api.typesafe.ai"` | SystemOne server base URL; /v1/systemone is appended. Supports HTTP(S), ports and path prefixes. |
+| `jev.auth` | `JEV_BROWSE_JEV_AUTH` | `"bearer"` | SystemOne authentication. none omits Authorization, even when a key is available. One of: `bearer`, `none`. |
+| `jev.api_key_env` | `JEV_BROWSE_JEV_API_KEY_ENV` | unset | Key environment variable name. Unset = TYPESAFE_API_KEY for the default endpoint, JEV_BROWSE_API_KEY for custom endpoints. Secrets stay in the environment. |
 | `jev.model` | `JEV_BROWSE_JEV_MODEL` (also `JEV_BROWSE_MODEL`) | `"jev-latest"` | TypeSafe model or alias for decisions. |
 | `run.max_actions` | `JEV_BROWSE_MAX_ACTIONS` | `30` | fast_run default: max page actions. |
 | `run.max_requests` | `JEV_BROWSE_MAX_REQUESTS` | `60` | fast_run default: max TypeSafe requests. |
