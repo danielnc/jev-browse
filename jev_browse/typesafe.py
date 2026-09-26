@@ -1,6 +1,6 @@
-"""Stdlib client for TypeSafe's System One endpoint (POST /v1/systemone).
+"""Stdlib client for SystemOne-compatible endpoints (POST /v1/systemone; TypeSafe by default).
 
-One keep-alive HTTPSConnection per process, a deadline-aware socket timeout on every request, retries with
+One keep-alive HTTP(S) connection per process, a deadline-aware socket timeout on every request, retries with
 backoff on 429/529/503, one reconnect on a stale keep-alive, and strict answer validation.
 `validate_choice` is ported from browser-use/jev-ultrafast jev_ultrafast/model.py (MIT). See NOTICE.
 """
@@ -8,7 +8,6 @@ backoff on 429/529/503, one reconnect on a stale keep-alive, and strict answer v
 import http.client
 import json
 import math
-import os
 import re
 import ssl
 import time
@@ -16,7 +15,6 @@ from dataclasses import dataclass, field
 
 from . import config
 
-HOST = "api.typesafe.ai"
 PATH = "/v1/systemone"
 MAX_SOCKET_TIMEOUT = 25.0
 RETRY_STATUSES = {429, 529, 503}
@@ -37,7 +35,7 @@ class RequestTooLarge(ServiceError):
 
 
 class MissingKey(ServiceError):
-    """TYPESAFE_API_KEY is not configured."""
+    """The selected SystemOne bearer key is not configured."""
 
 
 @dataclass
@@ -109,10 +107,17 @@ def _detail(body):
 
 class Client:
     def __init__(self, api_key=None, model=None, *, sleep=time.sleep):
-        key = api_key or os.environ.get("TYPESAFE_API_KEY")
-        if not key:
-            raise MissingKey("TYPESAFE_API_KEY not set (expected in the browser-harness agent-workspace .env)")
+        endpoint = config.jev_endpoint()
+        key = config.jev_api_key(api_key)
+        if not key and config.jev_auth() != "none":
+            raise MissingKey(config.key_detail())
         self._key = key
+        self._host = endpoint.netloc
+        self._path = endpoint.path.rstrip("/") + PATH
+        self._https = endpoint.scheme == "https"
+        self._default_endpoint = config.jev_default_endpoint()
+        self._service = "TypeSafe" if self._default_endpoint else "Jev endpoint"
+        self._key_env = config.jev_api_key_env() if key else None
         self.model = model or config.get("jev.model")
         self._sleep = sleep
         self._conn = None
@@ -123,7 +128,8 @@ class Client:
 
     def _connection(self, timeout):
         if self._conn is None:
-            self._conn = http.client.HTTPSConnection(HOST, timeout=timeout)
+            connection = http.client.HTTPSConnection if self._https else http.client.HTTPConnection
+            self._conn = connection(self._host, timeout=timeout)
         self._conn.timeout = timeout
         if getattr(self._conn, "sock", None) is not None:
             self._conn.sock.settimeout(timeout)
@@ -151,19 +157,21 @@ class Client:
         for attempt in range(2):
             conn = self._connection(self._timeout(deadline))
             try:
-                conn.request("POST", PATH, body=payload, headers={
-                    "Authorization": f"Bearer {self._key}", "Content-Type": "application/json"})
+                headers = {"Content-Type": "application/json"}
+                if self._key:
+                    headers["Authorization"] = f"Bearer {self._key}"
+                conn.request("POST", self._path, body=payload, headers=headers)
                 response = conn.getresponse()
                 return response.status, response.read()
             except _RECONNECT_ERRORS as exc:
                 self._drop()
                 if attempt == 0 and reused:
                     continue
-                raise ServiceError(f"TypeSafe connection failed ({type(exc).__name__}); no action executed.") from None
+                raise ServiceError(f"{self._service} connection failed ({type(exc).__name__}); no action executed.") from None
             except (TimeoutError, OSError) as exc:
                 self._drop()
-                raise ServiceError(f"TypeSafe connection failed ({type(exc).__name__}); no action executed.") from None
-        raise ServiceError("TypeSafe connection failed; no action executed.")
+                raise ServiceError(f"{self._service} connection failed ({type(exc).__name__}); no action executed.") from None
+        raise ServiceError(f"{self._service} connection failed; no action executed.")
 
     def ask(self, state, questions, *, deadline=None):
         body = {"state": state, "model": self.model, "questions": questions}
@@ -177,20 +185,27 @@ class Client:
                 self._sleep(0.5 * 2**attempt)
                 continue
             if status in (401, 403):
-                raise ServiceError(f"TypeSafe rejected the API key (HTTP {status}); check TYPESAFE_API_KEY "
-                                   "in the browser-harness agent-workspace .env. Not retried.")
+                hint = (f"check {self._key_env} in the browser-harness agent-workspace .env"
+                        if self._key else "check jev.auth and jev.api_key_env")
+                raise ServiceError(f"{self._service} rejected authentication (HTTP {status}); {hint}. Not retried.")
             if status in (400, 413, 422):
                 detail = redact(_detail(raw))
-                if _LIMIT_WORDS.search(detail):
-                    raise RequestTooLarge(f"TypeSafe request too large: {detail}")
-                raise ServiceError(f"TypeSafe rejected the request (HTTP {status}): {detail}")
+                too_large = bool(_LIMIT_WORDS.search(detail))
+                # Custom servers may echo private URLs or arbitrary bearer tokens in error bodies.
+                if not self._default_endpoint:
+                    detail = "response detail withheld for a custom endpoint"
+                elif self._key:
+                    detail = detail.replace(self._key, "<redacted>")
+                if too_large:
+                    raise RequestTooLarge(f"{self._service} request too large: {detail}")
+                raise ServiceError(f"{self._service} rejected the request (HTTP {status}): {detail}")
             if status != 200:
-                raise ServiceError(f"TypeSafe returned HTTP {status}; no action executed.")
+                raise ServiceError(f"{self._service} returned HTTP {status}; no action executed.")
             try:
                 data = json.loads(raw)
                 answers = data["answers"]
             except (ValueError, KeyError, TypeError):
-                raise ServiceError("TypeSafe returned an unreadable body; no action executed.") from None
+                raise ServiceError(f"{self._service} returned an unreadable body; no action executed.") from None
             return Answer(answers=answers, model=data.get("model", self.model), usage=data.get("usage", {}),
                           latency_ms=round((time.perf_counter() - started) * 1000))
-        raise ServiceError("TypeSafe unavailable after retries; no action executed.")
+        raise ServiceError(f"{self._service} unavailable after retries; no action executed.")

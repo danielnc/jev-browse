@@ -60,6 +60,16 @@
 # ttl_unhealthy_s = 120
 
 [jev]
+# SystemOne server base URL; /v1/systemone is appended. Supports HTTP(S), ports and path prefixes.
+# Env: JEV_BROWSE_JEV_BASE_URL
+# base_url = "https://api.typesafe.ai"
+# SystemOne authentication. none omits Authorization, even when a key is available. One of: bearer,
+# none. Env: JEV_BROWSE_JEV_AUTH
+# auth = "bearer"
+# Key environment variable name. Unset = TYPESAFE_API_KEY for the default endpoint,
+# JEV_BROWSE_API_KEY for custom endpoints. Secrets stay in the environment. Env:
+# JEV_BROWSE_JEV_API_KEY_ENV
+# api_key_env = ""
 # TypeSafe model or alias for decisions. Env: JEV_BROWSE_JEV_MODEL
 # model = "jev-latest"
 

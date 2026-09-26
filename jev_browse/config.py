@@ -8,12 +8,13 @@ Also here: the fixed thresholds, commit verbs, sensitive and personal-data patte
 
 import fnmatch
 import os
+import re
 import shutil
 import textwrap
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 
 from .textnorm import fold
 
@@ -82,6 +83,14 @@ _S = [
     Setting("canary.ttl_unhealthy_s", "JEV_BROWSE_CANARY_TTL_UNHEALTHY_S", "int", 120,
             "Seconds a failed canary is reused across processes.", minimum=0),
     # Jev and run budgets
+    Setting("jev.base_url", "JEV_BROWSE_JEV_BASE_URL", "str", "https://api.typesafe.ai",
+            "SystemOne server base URL; /v1/systemone is appended. Supports HTTP(S), ports and path prefixes.",
+            private=True),
+    Setting("jev.auth", "JEV_BROWSE_JEV_AUTH", "choice", "bearer",
+            "SystemOne authentication. none omits Authorization, even when a key is available.", ("bearer", "none")),
+    Setting("jev.api_key_env", "JEV_BROWSE_JEV_API_KEY_ENV", "str", None,
+            "Key environment variable name. Unset = TYPESAFE_API_KEY for the default endpoint, "
+            "JEV_BROWSE_API_KEY for custom endpoints. Secrets stay in the environment."),
     Setting("jev.model", "JEV_BROWSE_JEV_MODEL", "str", "jev-latest", "TypeSafe model or alias for decisions.",
             aliases=("JEV_BROWSE_MODEL",)),
     Setting("run.max_actions", "JEV_BROWSE_MAX_ACTIONS", "int", 30, "fast_run default: max page actions.",
@@ -116,7 +125,8 @@ SETTINGS = {s.key: s for s in _S}
 
 # Environment-only (never read from the config file): secrets and per-process switches.
 ENV_ONLY = {
-    "TYPESAFE_API_KEY": "TypeSafe API key (required). Keep it in the browser-harness agent-workspace .env.",
+    "TYPESAFE_API_KEY": "Default TypeSafe API key. Keep it in the browser-harness agent-workspace .env.",
+    "JEV_BROWSE_API_KEY": "Default bearer key for a custom SystemOne server (see jev.api_key_env).",
     "JEV_BROWSE_CONFIG": "Path of the config file.",
     "JEV_BROWSE_DISABLE": "1 = the harness helpers are stubs that raise.",
     "JEV_BROWSE_OWNER": "Tab-ownership tag; set one per parallel agent (default: the Claude Code session id; "
@@ -407,18 +417,69 @@ def host_allowed(url):
     return False
 
 
+def jev_endpoint():
+    """Validated base URL, never included in errors. Invalid endpoints must not fall back to TypeSafe."""
+    value = get("jev.base_url")
+    try:
+        if not value or any(ord(c) <= 32 or ord(c) >= 127 for c in value) or "\\" in value:
+            raise ValueError
+        url = urlsplit(value)
+        if (url.scheme not in {"http", "https"} or not url.hostname or url.username is not None
+                or url.password is not None or "?" in value or "#" in value):
+            raise ValueError
+        if url.port is not None and not 1 <= url.port <= 65535:
+            raise ValueError
+        return url
+    except ValueError:
+        raise ValueError("Invalid jev.base_url: use an HTTP(S) base URL without credentials, query or fragment.") from None
+
+
+def jev_default_endpoint():
+    url = jev_endpoint()
+    return (url.scheme == "https" and url.hostname == "api.typesafe.ai"
+            and url.port in (None, 443) and not url.path.strip("/"))
+
+
+def jev_auth():
+    value, _source, error = _lookup("jev.auth")
+    if error or value not in {"bearer", "none"}:
+        raise ValueError("Invalid jev.auth: choose bearer or none.")
+    return value
+
+
+def jev_api_key_env():
+    name = get("jev.api_key_env")
+    if name is None:
+        return "TYPESAFE_API_KEY" if jev_default_endpoint() else "JEV_BROWSE_API_KEY"
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+        raise ValueError("Invalid jev.api_key_env: expected an environment variable name.")
+    return name
+
+
+def jev_api_key(explicit=None):
+    """Resolve only the selected credential; custom endpoints never inherit the hosted key implicitly."""
+    jev_endpoint()
+    if jev_auth() == "none":
+        return None
+    return explicit or os.environ.get(jev_api_key_env())
+
+
 def key_detail():
-    """The hand-back detail for a missing TypeSafe key: a fixed message, never a key or a real path."""
-    return "TYPESAFE_API_KEY not set (expected in <workspace>/.env)"
+    """The hand-back detail for a missing key, without a key or real path."""
+    return f"{jev_api_key_env()} not set (expected in <workspace>/.env)"
 
 
 def require_key():
-    """Preflight: a HandBack(service_error) when TYPESAFE_API_KEY is absent, else None. No browser work."""
-    if os.environ.get("TYPESAFE_API_KEY"):
-        return None
+    """Validate the endpoint and its authentication before any browser work."""
     from .results import HandBack, Reason
 
-    return HandBack(Reason.service_error, key_detail(), {})
+    try:
+        if jev_api_key() or jev_auth() == "none":
+            return None
+        detail = key_detail()
+    except ValueError as exc:
+        detail = str(exc)
+    return HandBack(Reason.service_error, detail, {})
 
 
 def _class_text(field, with_placeholder=True):

@@ -2,6 +2,16 @@
 
 Read this when you use the interactive helpers, need a tab-ownership detail, or a hand-back reason is unclear.
 
+## Decision server
+
+TypeSafe is the default. For a compatible self-hosted server, set `jev.base_url`, `jev.model`, and `jev.auth`
+in the config file (or their `JEV_BROWSE_JEV_*` environment variables). The base URL gets `/v1/systemone`
+appended. `auth = "none"` needs no key and sends no Authorization header; `bearer` uses the environment variable
+named by `jev.api_key_env`, defaulting to `JEV_BROWSE_API_KEY` for custom servers and `TYPESAFE_API_KEY` for the
+default endpoint. Missing credentials or invalid endpoint/auth settings hand back `service_error` before
+browser work. `doctor` tests the selected endpoint; private base URLs are not printed. Page content still goes
+to that server even with `text_backend="none"`.
+
 ## Signatures
 ```python
 fast_run(url, goal, *, target_id=None, values=None, confirm=(), run_id=None, max_actions=30, max_requests=60,

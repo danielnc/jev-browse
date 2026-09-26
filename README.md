@@ -140,7 +140,9 @@ what was missing: `fast_run(None, goal, target_id=r.target_id, values={...})`.
 
 ## Configuration
 
-Zero config beyond `TYPESAFE_API_KEY`. Everything else is an environment variable (the harness `.env` counts) or
+The default TypeSafe setup needs only `TYPESAFE_API_KEY`. For a self-hosted SystemOne API, configure
+`jev.base_url`, `jev.model`, and `jev.auth` (`bearer` or `none`); see
+[custom SystemOne servers](docs/configuration.md#custom-systemone-servers). Everything else is an environment variable (the harness `.env` counts) or
 an entry in `~/.config/jev-browse/config.toml`. The environment wins. The settings you are most likely to change:
 
 | Setting (`config.toml`) | Environment | Default |
@@ -182,7 +184,8 @@ numbers and set-up notes: [docs/backends.md](docs/backends.md).
 ## Safety and privacy
 
 - **What leaves your machine.** On every decision, visible page text, element labels, non-personal field values,
-  URL, and title go to **TypeSafe** (`api.typesafe.ai`). After a miss, the goal, field labels, and up to 2,000
+  URL, and title go to the **configured SystemOne server** (TypeSafe at `api.typesafe.ai` by default).
+  After a miss, the goal, field labels, and up to 2,000
   characters of page text go to your **text backend**, or to its fallback when a local backend fails (see
   `text.fallback` above). Use it only on pages you are comfortable sending there. Use
   `text_backend="none"` (or `text.backend = "none"`) for sensitive sites.

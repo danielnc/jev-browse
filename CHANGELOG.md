@@ -5,6 +5,11 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Configurable SystemOne base URLs with path prefixes, custom model names, and bearer or explicitly disabled
+  authentication. Custom endpoints use a separate key by default; preflight and doctor follow the selected
+  server without exposing private URLs or forwarding TypeSafe credentials implicitly.
+
 ## [0.2.0] - 2026-09-25
 
 The first release published to PyPI. The `v0.1.0` tag predates the packaging and was never uploaded, so this is
