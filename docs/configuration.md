@@ -54,8 +54,9 @@ jev-browse config --example > ~/.config/jev-browse/config.toml   # a commented s
 By default, decisions come from TypeSafe's hosted Jev. Any server that speaks the same SystemOne API works
 too. [Kev](https://github.com/jaredpalmer/kev) is an open-source (Apache-2.0) family of Jev-like decision models
 that you can train and run yourself; point `jev.base_url` at your Kev server and set `jev.model` to the Kev
-model it serves. With a Kev server you run yourself and a local text backend such as Ollama, page content stays on
-machines you control and no TypeSafe key is needed. Check a new server with `jev-browse doctor` before relying on it.
+model it serves. With a Kev server you run yourself, a local text backend such as Ollama, and `text.fallback = "none"`
+(the default `auto` can fall back to the `claude` CLI), page content stays on machines you control and no
+TypeSafe key is needed. Check a new server with `jev-browse doctor` before relying on it.
 
 The Jev decision endpoint is independent of the text backend. For an unauthenticated server:
 
