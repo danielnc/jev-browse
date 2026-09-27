@@ -26,7 +26,7 @@ MAX_VALUE_LEN = 500
 EXCERPT_CHARS = 2000
 MCP_EMPTY = '{"mcpServers":{}}'
 KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CONFIG_DIR"}
-DROP_ENV = {"TYPESAFE_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"}
+DROP_ENV = {"TYPESAFE_API_KEY", "JEV_BROWSE_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"}
 DROP_PREFIXES = ("CLAUDE_", "CLAUDECODE")
 OPENAI_ENV = ("OPENAI_API_KEY", "OPENAI_ORG_ID", "OPENAI_PROJECT_ID", "AZURE_OPENAI_API_KEY")
 
@@ -49,8 +49,11 @@ def scrubbed_env(env):
     """Prefix-based scrub with a keep-list: API keys and every CLAUDE_*/CLAUDECODE* var removed,
     except the subscription credentials CLAUDE_CODE_OAUTH_TOKEN and CLAUDE_CONFIG_DIR."""
     out = {}
+    jev_key_env = config.get("jev.api_key_env")
     for k, v in env.items():
-        if k in KEEP_ENV:
+        if k == jev_key_env:
+            continue
+        elif k in KEEP_ENV:
             out[k] = v
         elif k in DROP_ENV or k.startswith(DROP_PREFIXES) or k in OPENAI_ENV:
             continue

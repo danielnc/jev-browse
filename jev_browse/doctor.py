@@ -1,6 +1,6 @@
 """`python3 -m jev_browse doctor`: check the install and configuration, and print what is active.
 
-Checks: Python, the config file and every setting, TYPESAFE_API_KEY (and one tiny live request unless --offline),
+Checks: Python, the config file and every setting, SystemOne authentication (and a live request unless --offline),
 browser-harness (installed, healthy, telemetry), the agent_helpers block and skill links, and the text backend
 (CLI present, or server reachable plus the known-answer canary). Nothing secret is printed: keys are reported as
 set/unset and private URLs as <set>. Exit status 1 if any check FAILs.
@@ -75,13 +75,19 @@ def check_config():
 
 
 def check_key(offline, client_factory=None):
-    """Is TYPESAFE_API_KEY set, and (unless `offline`) does one tiny TypeSafe request succeed?"""
-    if not os.environ.get("TYPESAFE_API_KEY"):
-        return Check(FAIL, "TYPESAFE_API_KEY", "not set; add it to the browser-harness agent-workspace .env "
-                     "(get a key at https://console.typesafe.ai/keys)")
+    """Validate endpoint/auth, then make one tiny request even when authentication is disabled."""
+    try:
+        key = config.jev_api_key()
+        anonymous = config.jev_auth() == "none"
+        name = "Jev endpoint" if anonymous else config.jev_api_key_env()
+        if not anonymous and not key:
+            return Check(FAIL, name, config.key_detail())
+    except ValueError as exc:
+        return Check(FAIL, "Jev endpoint", str(exc))
+    note = "authentication disabled" if anonymous else "set"
     if offline:
-        return Check(OK, "TYPESAFE_API_KEY", "set (not verified: --offline)")
-    from .typesafe import Client
+        return Check(OK, name, f"{note} (not verified: --offline)")
+    from .typesafe import Client, ServiceError
 
     try:
         client = (client_factory or Client)()
@@ -89,9 +95,10 @@ def check_key(offline, client_factory=None):
         started = time.perf_counter()
         client.ask({"message": "jev-browse doctor connectivity check"}, {"ok": q}, deadline=time.monotonic() + 20)
         ms = round((time.perf_counter() - started) * 1000)
-        return Check(OK, "TYPESAFE_API_KEY", f"set; TypeSafe answered in {ms} ms (model {client.model})")
+        return Check(OK, name, f"{note}; SystemOne answered in {ms} ms (model {client.model})")
     except Exception as exc:
-        return Check(FAIL, "TYPESAFE_API_KEY", f"set, but the TypeSafe request failed: {exc}")
+        detail = str(exc) if isinstance(exc, ServiceError) else type(exc).__name__
+        return Check(FAIL, name, f"{note}, but the SystemOne request failed: {detail}")
 
 
 def check_harness(run=_run, telemetry=install.telemetry_enabled):

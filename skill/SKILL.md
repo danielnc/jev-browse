@@ -6,7 +6,8 @@ description: Use for any browser-harness task that is a multi-step form or navig
 # jev-browse
 
 Helpers inside every `browser-harness` script: `fast_run`, `jev_open`, `jev_adopt`, `jev_find`, `jev_click`,
-`jev_check`, `jev_close`. Page text goes to TypeSafe (and, only after a miss, to the text backend). Details:
+`jev_check`, `jev_close`. Page text goes to the configured SystemOne server (TypeSafe by default) and, only
+after a miss, to the text backend. Details:
 `reference.md` next to this file.
 
 ## Which tool
@@ -59,7 +60,7 @@ print(r.status, r.reason, r.detail, r.target_id)
   `switch_tab(target_id)`; reads use `js(expr, target_id=...)` and never move the shared tab.
 
 ## Rules
-- Only use it on pages whose content you are comfortable sending to TypeSafe and the text backend. Use
+- Only use it on pages whose content you are comfortable sending to the configured SystemOne server and the text backend. Use
   `text_backend="none"` for sensitive sites (misses then hand back to you).
 - Close tabs by explicit `target_id`; `jev_close(all_owned=True)` for end-of-session cleanup. Parallel
   subagents set their own `JEV_BROWSE_OWNER`.

@@ -3,6 +3,7 @@
 import pytest
 
 from jev_browse import doctor, harness_api, install, textgen
+from jev_browse.typesafe import ServiceError
 from tests.fakes import FakeCDP
 
 
@@ -47,7 +48,7 @@ def test_key_missing_offline_and_live(monkeypatch):
 
     class Bad(Good):
         def ask(self, state, questions, deadline=None):
-            raise RuntimeError("TypeSafe rejected the API key (HTTP 401)")
+            raise ServiceError("TypeSafe rejected the API key (HTTP 401)")
 
     good = doctor.check_key(offline=False, client_factory=Good)
     assert good.status == doctor.OK and "ts-secret-value" not in good.detail
