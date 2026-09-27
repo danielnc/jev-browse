@@ -5,10 +5,14 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-27
+
 ### Added
 - Configurable SystemOne base URLs with path prefixes, custom model names, and bearer or explicitly disabled
-  authentication. Custom endpoints use a separate key by default; preflight and doctor follow the selected
-  server without exposing private URLs or forwarding TypeSafe credentials implicitly.
+  authentication, so decisions can come from a self-hosted server such as
+  [Kev](https://github.com/jaredpalmer/kev) instead of TypeSafe. Custom endpoints use a separate key by default;
+  preflight and doctor follow the selected server without exposing private URLs or forwarding TypeSafe
+  credentials implicitly. Thanks to [@RosarioDiBartolo](https://github.com/RosarioDiBartolo) (#6).
 
 ## [0.2.0] - 2026-09-25
 
@@ -68,6 +72,7 @@ the first version that `uv tool install jev-browse` or `pipx install jev-browse`
 
 Ports code from [browser-use/jev-ultrafast](https://github.com/browser-use/jev-ultrafast) (MIT).
 
-[Unreleased]: https://github.com/danielnc/jev-browse/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/danielnc/jev-browse/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/danielnc/jev-browse/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/danielnc/jev-browse/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/danielnc/jev-browse/releases/tag/v0.1.0

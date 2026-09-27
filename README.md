@@ -140,7 +140,7 @@ what was missing: `fast_run(None, goal, target_id=r.target_id, values={...})`.
 
 ## Configuration
 
-The default TypeSafe setup needs only `TYPESAFE_API_KEY`. For a self-hosted SystemOne API, configure
+The default TypeSafe setup needs only `TYPESAFE_API_KEY`. For a self-hosted SystemOne API such as [Kev](https://github.com/jaredpalmer/kev), configure
 `jev.base_url`, `jev.model`, and `jev.auth` (`bearer` or `none`); see
 [custom SystemOne servers](docs/configuration.md#custom-systemone-servers). Everything else is an environment variable (the harness `.env` counts) or
 an entry in `~/.config/jev-browse/config.toml`. The environment wins. The settings you are most likely to change:
